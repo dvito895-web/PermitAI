@@ -48,6 +48,39 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json({ message: 'PermitAI API v2.0' }));
     }
 
+    // Indexation progress endpoint - GET /api/indexation/progress
+    if (route === '/indexation/progress' && method === 'GET') {
+      const fs = require('fs');
+      const path = require('path');
+      const progressFile = path.join(process.cwd(), 'scripts', 'indexation_progress.json');
+      
+      try {
+        if (fs.existsSync(progressFile)) {
+          const data = fs.readFileSync(progressFile, 'utf8');
+          const progress = JSON.parse(data);
+          const percentage = Math.round((progress.communes_indexed / progress.total_communes_estimated) * 100);
+          
+          return handleCORS(NextResponse.json({
+            ...progress,
+            percentage,
+            estimated_time_remaining: progress.status === 'running' ? '24-48 heures' : null
+          }));
+        } else {
+          return handleCORS(NextResponse.json({
+            status: 'not_started',
+            communes_indexed: 51,
+            total_communes_estimated: 36000,
+            percentage: 0
+          }));
+        }
+      } catch (error) {
+        return handleCORS(NextResponse.json({
+          status: 'error',
+          error: error.message
+        }, { status: 500 }));
+      }
+    }
+
     // PLU Query endpoint - POST /api/plu/query
     if (route === '/plu/query' && method === 'POST') {
       const authObj = auth();
