@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  imageUrl  String?
+  plan      String   @default("free") // free, starter, pro, cabinet
+  credits   Int      @default(1) // Nombre d'analyses restantes ce mois
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  analyses      Analyse[]
+  dossiers      Dossier[]
+  subscriptions Subscription?
+  alertes       Alerte[]
+
+  @@index([clerkId])
+}
+
+model PluChunk {
+  id          BigInt   @id @default(autoincrement())
+  communeCode String   @db.VarChar(10)
+  communeNom  String   @db.VarChar(255)
+  zone        String?  @db.VarChar(50)
+  sousZone    String?  @db.VarChar(50)
+  theme       String?  @db.VarChar(100)
+  article     String?  @db.VarChar(50)
+  texte       String   @db.Text
+  updatedAt   DateTime @default(now())
+
+  @@index([communeCode])
+  @@map("plu_chunks")
+}
+
+model PluDocument {
+  communeCode String   @id @db.VarChar(10)
+  communeNom  String   @db.VarChar(255)
+  statut      String   @default("pending") @db.VarChar(50) // pending, indexed, failed
+  nbChunks    Int      @default(0)
+  updatedAt   DateTime @default(now())
+
+  @@map("plu_documents")
+}
+
+model Analyse {
+  id          String   @id @default(uuid())
+  userId      String
+  adresse     String   @db.VarChar(500)
+  communeCode String?  @db.VarChar(10)
+  description String   @db.Text
+  verdict     String?  @db.VarChar(50) // conforme, non_conforme, conforme_sous_conditions, incertain, non_indexee
+  resultJson  Json?
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("analyses")
+}
+
+model Dossier {
+  id               String    @id @default(uuid())
+  userId           String
+  typePermis       String    @db.VarChar(50) // PC_MI, DP_MI, CU, PC, DP, etc.
+  statut           String    @default("brouillon") @db.VarChar(50) // brouillon, depose, en_instruction, pieces_complementaires, accorde, refuse, accorde_tacite
+  champsJson       Json      @default("{}")
+  cerfaNum         String?   @db.VarChar(50)
+  dateDepot        DateTime?
+  dateLimite       DateTime?
+  dateAccordTacite DateTime?
+  numDossier       String?   @db.VarChar(100)
+  piecesJointes    Json?     // Liste des pièces obligatoires et leur statut
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alertes Alerte[]
+
+  @@index([userId])
+  @@map("dossiers")
+}
+
+model Subscription {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  stripeSubId       String    @unique @db.VarChar(255)
+  stripeCustomerId  String    @db.VarChar(255)
+  plan              String    @db.VarChar(50) // starter, pro, cabinet
+  status            String    @default("active") @db.VarChar(50) // active, canceled, past_due
+  currentPeriodEnd  DateTime
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Alerte {
+  id           String    @id @default(uuid())
+  userId       String
+  dossierId    String?
+  typeAlerte   String    @db.VarChar(100) // delai_proche, delai_depasse, pieces_complementaires, plu_revise, doc_required, daact_required
+  message      String    @db.Text
+  dateEcheance DateTime?
+  estLue       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dossier  Dossier? @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("alertes")
+}

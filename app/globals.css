@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark premium background */
+    --background: 222 29% 4%; /* #06060e */
+    --foreground: 0 0% 95%;
+    
+    --card: 222 29% 6%;
+    --card-foreground: 0 0% 95%;
+    
+    --popover: 222 29% 6%;
+    --popover-foreground: 0 0% 95%;
+    
+    /* Gold accent colors */
+    --primary: 38 65% 38%; /* #A07820 */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 43 75% 52%; /* #E8B420 */
+    --secondary-foreground: 222 29% 4%;
+    
+    --muted: 222 20% 12%;
+    --muted-foreground: 0 0% 60%;
+    
+    --accent: 38 65% 38%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 222 20% 15%;
+    --input: 222 20% 15%;
+    --ring: 38 65% 38%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-geist;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-fraunces;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300;
+  }
+  
+  .btn-gold-outline {
+    @apply border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300;
+  }
+  
+  .animate-in {
+    @apply animate-fade-in;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-gold-light to-gold bg-clip-text text-transparent;
+  }
+}
