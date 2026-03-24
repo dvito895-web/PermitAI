@@ -47,7 +47,8 @@ model PluDocument {
   communeNom  String   @db.VarChar(255)
   statut      String   @default("pending") @db.VarChar(50) // pending, indexed, failed
   nbChunks    Int      @default(0)
-  updatedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("plu_documents")
 }

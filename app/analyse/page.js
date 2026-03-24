@@ -17,12 +17,12 @@ export default function AnalysePage() {
     e.preventDefault();
     
     if (!isSignedIn) {
-      setError('Please sign in to analyze your land');
+      setError('Veuillez vous connecter pour analyser votre terrain');
       return;
     }
 
     if (!adresse || !description) {
-      setError('Please fill in all fields');
+      setError('Veuillez remplir tous les champs');
       return;
     }
 
@@ -46,12 +46,12 @@ export default function AnalysePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Analysis failed');
+        throw new Error(data.error || 'L analyse a échoué');
       }
 
       setResult(data);
     } catch (err) {
-      setError(err.message || 'An error occurred during analysis');
+      setError(err.message || 'Une erreur s est produite durant l analyse');
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function AnalysePage() {
       case 'conforme_sous_conditions':
         return 'CONFORME SOUS CONDITIONS';
       case 'non_indexee':
-        return 'COMMUNE NON INDEXEE';
+        return 'COMMUNE NON INDEXÉE';
       case 'incertain':
         return 'INCERTAIN';
       default:
@@ -115,13 +115,13 @@ export default function AnalysePage() {
               {isSignedIn ? (
                 <Link href="/dashboard">
                   <button className="text-sm hover:text-[#E8B420] transition-colors">
-                    Dashboard
+                    Tableau de bord
                   </button>
                 </Link>
               ) : (
                 <Link href="/sign-in">
                   <button className="bg-[#A07820] hover:bg-[#E8B420] px-6 py-2 rounded-lg transition-all">
-                    Sign In
+                    Connexion
                   </button>
                 </Link>
               )}
@@ -135,20 +135,20 @@ export default function AnalysePage() {
           Analyse <span className="text-[#E8B420] italic">PLU</span>
         </h1>
         <p className="text-xl text-gray-300 mb-12 text-center">
-          Verify your project compliance in 3 minutes
+          Vérifiez la conformité de votre projet en 3 minutes
         </p>
 
         <form onSubmit={handleAnalyse} className="bg-white/5 border border-white/10 rounded-lg p-8 mb-8">
           <div className="mb-6">
             <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-[#E8B420]" />
-              Land Address
+              Adresse du terrain
             </label>
             <input
               type="text"
               value={adresse}
               onChange={(e) => setAdresse(e.target.value)}
-              placeholder="Ex: 15 rue de la Republique, 75001 Paris"
+              placeholder="Ex: 15 rue de la République, 75001 Paris"
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#E8B420]"
               disabled={loading}
             />
@@ -157,12 +157,12 @@ export default function AnalysePage() {
           <div className="mb-6">
             <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#E8B420]" />
-              Project Description
+              Description des travaux
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ex: I want to build a 20m2 extension to my house with a height of 3m. The extension will be in wood..."
+              placeholder="Ex: Je souhaite construire une extension de 20m2 à ma maison individuelle avec une hauteur de 3m. L extension sera en bois..."
               rows={5}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#E8B420] resize-none"
               disabled={loading}
@@ -183,18 +183,18 @@ export default function AnalysePage() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Analysis in progress...
+                Analyse en cours...
               </>
             ) : (
-              <>Analyze compliance</>
+              <>Analyser la faisabilité</>
             )}
           </button>
 
           {!isSignedIn && (
             <p className="text-center text-sm text-gray-400 mt-4">
-              You must be signed in to analyze a land.{' '}
+              Vous devez être connecté pour analyser un terrain.{' '}
               <Link href="/sign-up" className="text-[#E8B420] hover:underline">
-                Create free account
+                Créer un compte gratuit
               </Link>
             </p>
           )}
@@ -211,7 +211,7 @@ export default function AnalysePage() {
                   </div>
                   {result.score_confiance && (
                     <div className="text-sm text-gray-400">
-                      Confidence: {result.score_confiance}%
+                      Confiance: {result.score_confiance}%
                     </div>
                   )}
                 </div>
@@ -227,12 +227,12 @@ export default function AnalysePage() {
             {result.commune && (
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <div className="text-gray-400">Town</div>
+                  <div className="text-gray-400">Commune</div>
                   <div className="font-semibold">{result.commune}</div>
                 </div>
                 {result.cerfa_recommande && (
                   <div>
-                    <div className="text-gray-400">Recommended CERFA</div>
+                    <div className="text-gray-400">CERFA recommandé</div>
                     <div className="font-semibold">{result.cerfa_recommande}</div>
                   </div>
                 )}
@@ -241,7 +241,7 @@ export default function AnalysePage() {
 
             {result.regles_applicables && result.regles_applicables.length > 0 && (
               <div>
-                <h3 className="text-xl font-semibold mb-4">Applicable PLU Rules</h3>
+                <h3 className="text-xl font-semibold mb-4">Règles PLU applicables</h3>
                 <div className="space-y-4">
                   {result.regles_applicables.map((regle, i) => (
                     <div key={i} className="bg-white/5 rounded-lg p-4 border-l-4 border-[#E8B420]">
@@ -263,14 +263,14 @@ export default function AnalysePage() {
                 {result.regles_masquees && result.regles_masquees > 0 && (
                   <div className="mt-4 bg-[#A07820]/20 border border-[#E8B420] rounded-lg p-6 text-center">
                     <div className="text-lg font-semibold mb-2">
-                      {result.regles_masquees} hidden rules
+                      {result.regles_masquees} règles masquées
                     </div>
                     <p className="text-sm text-gray-300 mb-4">
-                      Unlock all rules with Starter plan at 29 EUR/month
+                      Débloquez toutes les règles avec le plan Starter à 29 EUR/mois
                     </p>
                     <Link href="/tarifs">
                       <button className="bg-[#A07820] hover:bg-[#E8B420] text-white px-6 py-2 rounded-lg transition-all">
-                        View pricing
+                        Voir les tarifs
                       </button>
                     </Link>
                   </div>
@@ -286,7 +286,7 @@ export default function AnalysePage() {
                   rel="noopener noreferrer"
                   className="text-[#E8B420] hover:underline text-sm"
                 >
-                  View PLU on Geoportail Urbanisme →
+                  Voir le PLU sur Géoportail Urbanisme →
                 </a>
               </div>
             )}
