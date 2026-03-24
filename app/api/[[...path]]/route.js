@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import prisma from '@/lib/db';
 import Stripe from 'stripe';
 
@@ -8,6 +9,9 @@ import Stripe from 'stripe';
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// Initialize Google Generative AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -115,6 +119,18 @@ async function handleRoute(request, { params }) {
       const communeNom = feature.properties.city;
       const coordinates = feature.geometry.coordinates;
 
+      // Get user to determine plan
+      const user = await prisma.user.findUnique({
+        where: { clerkId: authObj.userId }
+      });
+
+      if (!user) {
+        return handleCORS(NextResponse.json({ error: 'User not found' }, { status: 404 }));
+      }
+
+      const userPlan = user.plan || 'free';
+      const isPaidPlan = ['starter', 'pro', 'cabinet'].includes(userPlan);
+
       // Search for PLU rules in database
       const pluRules = await prisma.pluChunk.findMany({
         where: { communeCode },
@@ -132,94 +148,119 @@ async function handleRoute(request, { params }) {
         }));
       }
 
-      // Build context for Claude
-      const contextRules = pluRules.map((rule, i) => 
+      // Build context for AI
+      const context = pluRules.map((rule, i) => 
         `Regle ${i + 1} - ${rule.article || 'N/A'}: ${rule.texte}`
-      ).join('\\n\\n');
+      ).join('\n\n');
 
-      const prompt = `Tu es un expert en droit de l'urbanisme francais avec 20 ans d'experience. Tu connais parfaitement tous les PLU de France.
+      // Expert prompt
+      const prompt = `Tu es un expert en droit de l'urbanisme français avec 20 ans d'expérience. Tu connais parfaitement le Code de l'urbanisme français, les PLU, les règles de construction.
 
-Voici les regles PLU applicables pour ${communeNom} (code ${communeCode}):
-${contextRules}
+Adresse : ${adresse}
+Commune : ${communeNom} (INSEE : ${communeCode})
+Projet du demandeur : ${description}
 
-Le projet est : ${description}
+Règles PLU applicables à cette commune :
+${context}
 
-Analyse la conformite du projet avec ces regles. Reponds UNIQUEMENT en JSON valide sans aucun texte autour, avec cette structure exacte:
+Analyse ce projet par rapport aux règles PLU et réponds UNIQUEMENT en JSON valide, sans aucun texte avant ou après.
+
 {
-  "verdict": "conforme" | "non_conforme" | "conforme_sous_conditions" | "incertain",
-  "score_confiance": 0-100,
-  "resume": "Resume en 2 phrases claires",
-  "commune": "${communeNom}",
-  "regles_applicables": [
+  "verdict":"conforme|non_conforme|conforme_sous_conditions|incertain",
+  "score_confiance":85,
+  "resume":"2 phrases claires expliquant le verdict",
+  "commune":"${communeNom}",
+  "regles_applicables":[
     {
-      "article": "Article exact",
-      "contenu": "Extrait de la regle",
-      "impact": "favorable" | "defavorable" | "neutre"
+      "article":"Art. UA 6 - Implantation",
+      "contenu":"Règle exacte du PLU",
+      "impact":"favorable|defavorable|neutre"
     }
   ],
-  "conditions": ["Condition 1", "Condition 2"],
-  "points_vigilance": ["Point 1", "Point 2"],
-  "cerfa_recommande": "PC_MI" | "DP_MI" | "CU" | etc,
-  "architecte_obligatoire": true | false,
-  "delai_instruction": "2 mois" | "3 mois",
-  "prochaine_etape": "Description de l'etape suivante",
-  "geoportail_url": "https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${coordinates[0]}&lat=${coordinates[1]}&zoom=16"
+  "conditions":["conditions à respecter si applicable"],
+  "points_vigilance":["points importants à surveiller"],
+  "cerfa_recommande":"PC_MI|DP_MI|PC|CU|DOC|DAACT",
+  "architecte_obligatoire":false,
+  "delai_instruction":"2 mois",
+  "prochaine_etape":"Action concrète et précise à faire maintenant",
+  "geoportail_url":"https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${coordinates[0]}&lat=${coordinates[1]}&zoom=16"
 }`;
 
-      const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      let rawResult;
 
-      let resultJson;
       try {
-        const responseText = message.content[0].text;
-        resultJson = JSON.parse(responseText);
-      } catch (e) {
-        resultJson = {
+        if (isPaidPlan) {
+          // Claude Sonnet pour tous les plans payants
+          const message = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2000,
+            system: 'Tu es un expert en droit de l\'urbanisme français. Réponds UNIQUEMENT en JSON valide sans aucun texte autour.',
+            messages: [{ role: 'user', content: prompt }],
+          });
+          rawResult = message.content[0].text;
+        } else {
+          // Gemini 1.5 Flash pour le plan gratuit uniquement
+          const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+          const result = await model.generateContent(prompt);
+          rawResult = result.response.text();
+          // Nettoyer le JSON si Gemini ajoute du texte autour
+          rawResult = rawResult.replace(/```json/g, '').replace(/```/g, '').trim();
+        }
+      } catch (aiError) {
+        console.error('AI Error:', aiError);
+        return handleCORS(NextResponse.json({
+          error: 'AI analysis failed',
+          message: aiError.message
+        }, { status: 500 }));
+      }
+
+      let analysisResult;
+      try {
+        analysisResult = JSON.parse(rawResult);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        // Fallback result
+        analysisResult = {
           verdict: 'incertain',
           score_confiance: 50,
-          resume: 'Analyse en cours. Veuillez reessayer.',
+          resume: 'Analyse en cours. Veuillez réessayer.',
           commune: communeNom,
           regles_applicables: pluRules.slice(0, 2).map(r => ({
-            article: r.article,
+            article: r.article || 'N/A',
             contenu: r.texte.substring(0, 200),
             impact: 'neutre'
           })),
           cerfa_recommande: 'DP_MI',
           architecte_obligatoire: false,
-          delai_instruction: '1 mois'
+          delai_instruction: '2 mois',
+          prochaine_etape: 'Veuillez réessayer l\'analyse',
+          geoportail_url: `https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${coordinates[0]}&lat=${coordinates[1]}&zoom=16`
         };
       }
 
-      if (is_demo) {
-        resultJson.regles_masquees = Math.max(0, pluRules.length - 2);
-        resultJson.regles_applicables = resultJson.regles_applicables?.slice(0, 2);
-        delete resultJson.conditions;
-        delete resultJson.points_vigilance;
+      // Mode gratuit : limiter les résultats
+      if (is_demo || !isPaidPlan) {
+        const totalRules = analysisResult.regles_applicables?.length || 0;
+        analysisResult.regles_applicables = analysisResult.regles_applicables?.slice(0, 2) || [];
+        analysisResult.regles_masquees = Math.max(0, totalRules - 2);
+        delete analysisResult.conditions;
+        delete analysisResult.points_vigilance;
       }
 
       // Save analysis
-      const user = await prisma.user.findUnique({
-        where: { clerkId: authObj.userId }
+      await prisma.analyse.create({
+        data: {
+          userId: user.id,
+          adresse,
+          communeCode,
+          description,
+          verdict: analysisResult.verdict,
+          resultJson: analysisResult,
+          isDemo: is_demo || !isPaidPlan,
+        }
       });
 
-      if (user) {
-        await prisma.analyse.create({
-          data: {
-            userId: user.id,
-            adresse,
-            communeCode,
-            description,
-            verdict: resultJson.verdict,
-            resultJson,
-            isDemo: is_demo,
-          }
-        });
-      }
-
-      return handleCORS(NextResponse.json(resultJson));
+      return handleCORS(NextResponse.json(analysisResult));
     }
 
     // Mairie info endpoint - GET /api/mairie/info?code=XXXXX
