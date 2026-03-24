@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,68 +6,176 @@
 
 @layer base {
   :root {
-    /* Dark premium background */
-    --background: 222 29% 4%; /* #06060e */
-    --foreground: 0 0% 95%;
+    /* Ultra premium dark gold palette */
+    --background: #06060e;
+    --surface: #0f0f1a;
+    --surface-elevated: #14141f;
+    --border: #1e1e2c;
+    --border-subtle: #272736;
     
-    --card: 222 29% 6%;
-    --card-foreground: 0 0% 95%;
+    --text-primary: #f0ede8;
+    --text-secondary: #8a857d;
+    --text-muted: #3c3830;
     
-    --popover: 222 29% 6%;
-    --popover-foreground: 0 0% 95%;
+    --gold: #a07820;
+    --gold-light: #c4960a;
+    --gold-bright: #e8b420;
     
-    /* Gold accent colors */
-    --primary: 38 65% 38%; /* #A07820 */
-    --primary-foreground: 0 0% 100%;
+    --stats-bg: #0b0b14;
+    --card-hover: rgba(160,120,32,0.3);
+    --badge-bg: rgba(160,120,32,0.09);
+    --badge-border: rgba(160,120,32,0.22);
     
-    --secondary: 43 75% 52%; /* #E8B420 */
-    --secondary-foreground: 222 29% 4%;
-    
-    --muted: 222 20% 12%;
-    --muted-foreground: 0 0% 60%;
-    
-    --accent: 38 65% 38%;
-    --accent-foreground: 0 0% 100%;
-    
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 222 20% 15%;
-    --input: 222 20% 15%;
-    --ring: 38 65% 38%;
-    --radius: 0.75rem;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --radius-button: 9px;
+    --radius-pill: 20px;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-[#1e1e2c];
   }
   
   body {
-    @apply bg-background text-foreground font-geist;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-[#06060e] text-[#f0ede8];
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-fraunces;
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    letter-spacing: -0.8px;
+    line-height: 1.1;
+    color: #f0ede8;
+  }
+  
+  p {
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  
+  label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #8a857d;
+    font-weight: 500;
   }
 }
 
 @layer components {
-  .btn-gold {
-    @apply bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300;
+  /* Premium buttons */
+  .btn-primary {
+    @apply bg-[#a07820] text-white px-[26px] py-[13px] rounded-[9px] font-medium text-[14px] transition-all duration-300 hover:bg-[#c4960a] border-0;
   }
   
-  .btn-gold-outline {
-    @apply border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300;
+  .btn-secondary {
+    @apply bg-transparent text-[#f0ede8] px-[26px] py-[13px] rounded-[9px] font-medium text-[14px] border border-[#272736] transition-all duration-300 hover:border-[#a07820];
   }
   
-  .animate-in {
-    @apply animate-fade-in;
+  /* Premium cards */
+  .card-premium {
+    @apply bg-[#0f0f1a] border border-[#1e1e2c] rounded-[14px] p-[22px] transition-all duration-300;
   }
   
-  .text-gradient {
-    @apply bg-gradient-to-r from-gold-light to-gold bg-clip-text text-transparent;
+  .card-premium:hover {
+    @apply border-[#a07820] border-opacity-30;
+  }
+  
+  /* Premium inputs */
+  .input-premium {
+    @apply bg-[#14141f] border border-[#272736] rounded-[8px] px-[14px] py-[10px] text-[#f0ede8] placeholder:text-[#3c3830] focus:outline-none focus:border-[#a07820] transition-colors;
+  }
+  
+  /* Badges */
+  .badge-premium {
+    @apply bg-[rgba(160,120,32,0.09)] border border-[rgba(160,120,32,0.22)] rounded-[20px] text-[#c4960a] text-[11px] font-medium px-3 py-1;
+  }
+  
+  /* Stats */
+  .stats-container {
+    @apply bg-[#0b0b14] border-t border-b border-[#1e1e2c];
+  }
+  
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    @apply text-[28px] text-[#e8b420] font-medium;
+  }
+  
+  .stat-label {
+    @apply text-[10px] uppercase tracking-[0.5px] text-[#3c3830];
+  }
+  
+  /* Navigation */
+  .nav-premium {
+    @apply fixed top-0 w-full z-50 h-16 border-b border-[#1e1e2c];
+    background: rgba(6, 6, 14, 0.95);
+    backdrop-filter: blur(8px);
+  }
+  
+  .nav-link {
+    @apply text-[13px] text-[#8a857d] hover:text-[#f0ede8] transition-colors;
+  }
+  
+  /* Hero title */
+  .hero-title {
+    font-family: 'Fraunces', serif;
+    @apply text-[52px] md:text-[64px] lg:text-[72px] font-medium;
+    letter-spacing: -0.8px;
+    line-height: 1.1;
+  }
+  
+  .hero-subtitle {
+    @apply text-[15px] font-light text-[#8a857d];
+  }
+  
+  /* Pricing card special */
+  .pricing-card-popular {
+    @apply bg-[#12121e] border-2 border-[rgba(160,120,32,0.5)];
+  }
+  
+  .popular-badge {
+    @apply absolute -top-[11px] left-1/2 -translate-x-1/2 bg-[#a07820] text-white rounded-[20px] px-4 py-1 text-[11px] font-medium;
+  }
+  
+  .price-value {
+    font-family: 'Fraunces', serif;
+    @apply text-[30px] text-[#e8b420] font-medium;
+  }
+  
+  /* Animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+  }
+}
+
+/* Sections spacing */
+section {
+  @apply px-[52px] py-[72px];
+}
+
+@media (max-width: 768px) {
+  section {
+    @apply px-6 py-12;
+  }
+  
+  .hero-title {
+    @apply text-[42px];
   }
 }

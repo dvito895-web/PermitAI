@@ -1,10 +1,19 @@
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
-import { Fraunces } from 'next/font/google';
+import { Fraunces, Inter } from 'next/font/google';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  style: ['normal', 'italic'],
   variable: '--font-fraunces',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -19,17 +28,17 @@ export default function RootLayout({ children }) {
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: '#A07820',
-          colorText: '#FFFFFF',
+          colorPrimary: '#a07820',
+          colorText: '#f0ede8',
           colorBackground: '#06060e',
         },
       }}
     >
-      <html lang="fr" className={fraunces.variable}>
+      <html lang="fr" className={`${fraunces.variable} ${inter.variable}`}>
         <head>
           <script dangerouslySetInnerHTML={{__html:'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);'}} />
         </head>
-        <body className="antialiased font-sans">
+        <body className="antialiased" style={{ fontFamily: 'var(--font-inter)' }}>
           {children}
         </body>
       </html>
