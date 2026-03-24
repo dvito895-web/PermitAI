@@ -2,9 +2,9 @@
   "status": "running",
   "current_dept": 19,
   "total_depts": 101,
-  "communes_indexed": 6664,
+  "communes_indexed": 6794,
   "total_communes_estimated": 36000,
   "start_time": "2026-03-24T20:29:40.035804",
-  "last_update": "2026-03-24T21:39:02.278690",
+  "last_update": "2026-03-24T21:40:21.934348",
   "errors": []
 }
