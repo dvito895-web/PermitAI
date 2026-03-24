@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
-import { Check, Building2, ArrowRight } from 'lucide-react';
+import { Check, Building2, ArrowRight, Star } from 'lucide-react';
 import { useState } from 'react';
+import { texts } from '@/lib/texts';
 
 export default function TarifsPage() {
   const { isSignedIn } = useUser();
@@ -16,6 +17,7 @@ export default function TarifsPage() {
       period: '',
       description: 'Pour decouvrir',
       features: [
+        texts.pricing.aiStandard,
         '1 seule analyse PLU',
         '2 regles visibles sur 15+',
         'Resume de 1 phrase',
@@ -27,6 +29,7 @@ export default function TarifsPage() {
       cta: 'Commencer gratuitement',
       ctaLink: '/sign-up',
       popular: false,
+      isPremiumAI: false,
     },
     {
       name: 'Starter',
@@ -34,6 +37,7 @@ export default function TarifsPage() {
       period: billingCycle === 'monthly' ? '/mois' : '/an',
       description: 'Pour les particuliers',
       features: [
+        texts.pricing.aiPremium,
         '8 analyses PLU completes par mois',
         'Toutes les regles visibles',
         '3 CERFA avec PDF officiel (PC MI, DP MI, CU)',
@@ -48,6 +52,7 @@ export default function TarifsPage() {
       cta: 'Choisir Starter',
       ctaLink: '/sign-up',
       popular: false,
+      isPremiumAI: true,
     },
     {
       name: 'Pro',
@@ -55,6 +60,7 @@ export default function TarifsPage() {
       period: billingCycle === 'monthly' ? '/mois' : '/an',
       description: 'Pour les professionnels',
       features: [
+        texts.pricing.aiPremium,
         'Analyses PLU illimitees',
         'Les 13 CERFA illimites avec PDF',
         'Depots illimites via PLAT AU et LRAR',
@@ -69,6 +75,7 @@ export default function TarifsPage() {
       cta: 'Choisir Pro',
       ctaLink: '/sign-up',
       popular: true,
+      isPremiumAI: true,
     },
     {
       name: 'Cabinet',
@@ -76,6 +83,7 @@ export default function TarifsPage() {
       period: billingCycle === 'monthly' ? '/mois' : '/an',
       description: 'Pour les cabinets',
       features: [
+        texts.pricing.aiPremium,
         'Tout Pro inclus',
         'Utilisateurs illimites',
         'Gestion multi-clients',
@@ -87,6 +95,7 @@ export default function TarifsPage() {
       cta: 'Choisir Cabinet',
       ctaLink: '/sign-up',
       popular: false,
+      isPremiumAI: true,
     }
   ];
 
@@ -181,12 +190,21 @@ export default function TarifsPage() {
                 </div>
                 
                 <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, j) => (
-                    <li key={j} className="flex items-start gap-2 text-sm">
-                      <Check className="w-5 h-5 text-[#E8B420] flex-shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
+                  {plan.features.map((feature, j) => {
+                    const isAIPremium = j === 0 && plan.isPremiumAI && (feature.includes('Premium') || feature.includes('Claude'));
+                    
+                    return (
+                      <li key={j} className="flex items-start gap-2 text-sm">
+                        <Check className="w-5 h-5 text-[#E8B420] flex-shrink-0 mt-0.5" />
+                        <span className={isAIPremium ? 'font-semibold' : ''}>
+                          {feature}
+                          {isAIPremium && (
+                            <Star className="inline-block w-4 h-4 ml-1 text-[#E8B420] fill-[#E8B420]" />
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
                 
                 <Link href={plan.ctaLink}>
