@@ -1,81 +1,111 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { Building2, FileText, Upload, AlertTriangle, TrendingUp } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { Building2, FileText, Upload, TrendingUp, Bell, Star, ArrowRight } from 'lucide-react';
+import texts from '@/lib/texts';
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
 
   if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#06060e]">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-[#06060e] flex items-center justify-center">
+        <div className="text-[#8a857d]">Chargement...</div>
       </div>
     );
   }
 
+  const stats = [
+    { label: texts.dashboard.analysesLeft, value: '8', icon: TrendingUp },
+    { label: texts.dashboard.activeDossiers, value: '2', icon: FileText },
+    { label: texts.dashboard.alerts, value: '1', icon: Bell },
+  ];
+
+  const quickActions = [
+    { title: texts.dashboard.newAnalysis, desc: texts.dashboard.newAnalysisDesc, icon: TrendingUp, link: '/analyse', color: 'text-[#e8b420]' },
+    { title: texts.dashboard.generateCerfa, desc: texts.dashboard.generateCerfaDesc, icon: FileText, link: '/cerfa', color: 'text-blue-500' },
+    { title: texts.dashboard.upgradePlan, desc: texts.dashboard.upgradePlanDesc, icon: Star, link: '/tarifs', color: 'text-amber-500' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#06060e] text-white">
-      <nav className="border-b border-white/10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <Building2 className="w-8 h-8 text-[#E8B420]" />
-              <span className="text-2xl font-fraunces font-bold">PermitAI</span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-400">Hello, {user?.firstName}</span>
-              <div className="w-8 h-8 rounded-full bg-[#A07820] flex items-center justify-center text-sm font-bold">
-                {user?.firstName?.charAt(0) || 'U'}
-              </div>
+    <div className="min-h-screen bg-[#06060e]">
+      <nav className="nav-premium">
+        <div className="container mx-auto px-6 h-full flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2">
+            <Building2 className="w-6 h-6 text-[#e8b420]" />
+            <span className="text-[18px] font-fraunces font-medium text-[#f0ede8]">{texts.nav.logo}</span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-[14px] font-medium text-[#f0ede8]">{user?.firstName || 'Utilisateur'}</div>
+              <div className="text-[12px] text-[#8a857d]">Plan Starter</div>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="container mx-auto px-6 py-12">
-        <h1 className="text-4xl md:text-5xl font-fraunces font-bold mb-8">Dashboard</h1>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-            <div className="text-sm text-gray-400 mb-2">Plan actuel</div>
-            <div className="text-2xl font-bold text-[#E8B420]">Free</div>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-            <div className="text-sm text-gray-400 mb-2">Analyses restantes</div>
-            <div className="text-2xl font-bold">1</div>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-            <div className="text-sm text-gray-400 mb-2">Dossiers actifs</div>
-            <div className="text-2xl font-bold">0</div>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-            <div className="text-sm text-gray-400 mb-2">Alertes en cours</div>
-            <div className="text-2xl font-bold">0</div>
-          </div>
-        </div>
+      <section className="pt-40 pb-24 px-6">
+        <div className="container mx-auto max-w-6xl">
+          <h1 className="hero-title mb-12">
+            Bonjour, <span className="text-[#e8b420] italic">{user?.firstName || 'bienvenue'}</span>
+          </h1>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <Link href="/analyse" className="bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg p-8 transition-all">
-            <FileText className="w-12 h-12 text-[#E8B420] mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Nouvelle analyse PLU</h3>
-            <p className="text-gray-400 text-sm">Analysez la conformite de votre projet</p>
-          </Link>
-          
-          <Link href="/cerfa" className="bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg p-8 transition-all">
-            <Upload className="w-12 h-12 text-[#E8B420] mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Generer un CERFA</h3>
-            <p className="text-gray-400 text-sm">Remplissez automatiquement vos formulaires</p>
-          </Link>
-          
-          <Link href="/tarifs" className="bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg p-8 transition-all">
-            <TrendingUp className="w-12 h-12 text-[#E8B420] mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Upgrade plan</h3>
-            <p className="text-gray-400 text-sm">Debloquez toutes les fonctionnalites</p>
-          </Link>
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            {stats.map((stat, i) => {
+              const Icon = stat.icon;
+              return (
+                <div key={i} className="card-premium">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-[11px] uppercase tracking-wider text-[#3c3830]">{stat.label}</div>
+                    <Icon className="w-5 h-5 text-[#8a857d]" />
+                  </div>
+                  <div className="stat-value">{stat.value}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div>
+            <h2 className="text-[28px] font-fraunces font-medium mb-6">Actions rapides</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {quickActions.map((action, i) => {
+                const Icon = action.icon;
+                return (
+                  <Link key={i} href={action.link}>
+                    <div className="card-premium cursor-pointer group hover:border-[#a07820]">
+                      <div className={`${action.color} mb-4 transition-transform group-hover:scale-110`}>
+                        <Icon className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-[16px] font-medium mb-2 text-[#f0ede8]">{action.title}</h3>
+                      <p className="text-[13px] text-[#8a857d] mb-6">{action.desc}</p>
+                      <div className="flex items-center gap-2 text-[13px] text-[#e8b420] font-medium">
+                        Commencer
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="card-premium mt-12">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[18px] font-medium mb-2">{texts.dashboard.currentPlan}</h3>
+                <p className="text-[14px] text-[#8a857d]">8 analyses restantes ce mois-ci</p>
+              </div>
+              <Link href="/tarifs">
+                <button className="btn-primary flex items-center gap-2">
+                  Upgrade
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
