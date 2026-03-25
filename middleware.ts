@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -10,30 +11,12 @@ const isPublicRoute = createRouteMatcher([
   '/api/health(.*)',
 ]);
 
-const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-  '/analyse(.*)',
-  '/cerfa(.*)',
-  '/depot(.*)',
-  '/suivi(.*)',
-]);
-
-export default clerkMiddleware((auth, request) => {
-  if (isProtectedRoute(request) && !auth().userId) {
-    return auth().redirectToSignIn();
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
   }
-
-  if (auth().userId && isPublicRoute(request)) {
-    const signInUrl = new URL('/sign-in', request.url);
-    const signUpUrl = new URL('/sign-up', request.url);
-
-    if (
-      request.nextUrl.pathname === signInUrl.pathname ||
-      request.nextUrl.pathname === signUpUrl.pathname
-    ) {
-      return Response.redirect(new URL('/dashboard', request.url));
-    }
-  }
+  
+  return NextResponse.next();
 });
 
 export const config = {
