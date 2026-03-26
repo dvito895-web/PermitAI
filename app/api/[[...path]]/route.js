@@ -85,6 +85,117 @@ async function handleRoute(request, { params }) {
       }
     }
 
+    // PLU Demo endpoint - POST /api/plu/demo (NO AUTH)
+    if (route === '/plu/demo' && method === 'POST') {
+      const body = await request.json();
+      const { adresse, description } = body;
+
+      if (!adresse || !description) {
+        return handleCORS(NextResponse.json(
+          { error: 'adresse and description are required' },
+          { status: 400 }
+        ));
+      }
+
+      // Geocode address
+      const geocodeUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(adresse)}`;
+      const geocodeResponse = await fetch(geocodeUrl);
+      const geocodeData = await geocodeResponse.json();
+
+      if (!geocodeData.features || geocodeData.features.length === 0) {
+        return handleCORS(NextResponse.json({
+          error: 'Address not found',
+          message: 'Adresse non trouvée dans la base nationale'
+        }, { status: 404 }));
+      }
+
+      const feature = geocodeData.features[0];
+      const communeCode = feature.properties.citycode;
+      const communeNom = feature.properties.city;
+      const coordinates = feature.geometry.coordinates;
+
+      // Search for PLU rules (limit to 2 for demo)
+      const pluRules = await prisma.pluChunk.findMany({
+        where: { communeCode },
+        take: 3,
+      });
+
+      if (pluRules.length === 0) {
+        return handleCORS(NextResponse.json({
+          verdict: 'non_indexee',
+          commune: communeNom,
+          commune_code: communeCode,
+          message: 'Cette commune sera bientôt indexée',
+          geoportail_url: `https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${coordinates[0]}&lat=${coordinates[1]}&zoom=16`
+        }));
+      }
+
+      // Build context for Gemini (always use free AI for demo)
+      const context = pluRules.map((rule, i) => 
+        `Regle ${i + 1} - ${rule.article || 'N/A'}: ${rule.texte}`
+      ).join('\n\n');
+
+      const prompt = `Tu es un expert en droit de l'urbanisme français avec 20 ans d'expérience.
+
+Adresse : ${adresse}
+Commune : ${communeNom} (INSEE : ${communeCode})
+Projet : ${description}
+
+Règles PLU applicables :
+${context}
+
+Analyse ce projet et réponds UNIQUEMENT en JSON valide :
+{
+  "verdict":"conforme|non_conforme|conforme_sous_conditions|incertain",
+  "score_confiance":85,
+  "resume":"2 phrases expliquant le verdict",
+  "commune":"${communeNom}",
+  "regles_applicables":[{"article":"Art.","contenu":"...","impact":"favorable|defavorable|neutre"}],
+  "geoportail_url":"https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${coordinates[0]}&lat=${coordinates[1]}&zoom=16"
+}`;
+
+      let rawResult;
+      try {
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent(prompt);
+        rawResult = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+      } catch (aiError) {
+        console.error('Demo AI Error:', aiError);
+        return handleCORS(NextResponse.json({
+          error: 'Analyse temporairement indisponible',
+          message: 'Veuillez réessayer dans quelques instants'
+        }, { status: 500 }));
+      }
+
+      let analysisResult;
+      try {
+        analysisResult = JSON.parse(rawResult);
+      } catch (parseError) {
+        analysisResult = {
+          verdict: 'incertain',
+          score_confiance: 50,
+          resume: 'Analyse en cours. Créez un compte pour voir le résultat complet.',
+          commune: communeNom,
+          regles_applicables: pluRules.slice(0, 2).map(r => ({
+            article: r.article || 'N/A',
+            contenu: r.texte.substring(0, 200),
+            impact: 'neutre'
+          })),
+          geoportail_url: `https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${coordinates[0]}&lat=${coordinates[1]}&zoom=16`
+        };
+      }
+
+      // ALWAYS limit to 2 rules for demo + add hidden count
+      const totalRules = analysisResult.regles_applicables?.length || 0;
+      analysisResult.regles_applicables = analysisResult.regles_applicables?.slice(0, 2) || [];
+      analysisResult.regles_masquees = Math.max(0, totalRules);
+      analysisResult.is_demo = true;
+
+      return handleCORS(NextResponse.json(analysisResult));
+    }
+
     // PLU Query endpoint - POST /api/plu/query
     if (route === '/plu/query' && method === 'POST') {
       const authObj = auth();
