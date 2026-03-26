@@ -3,154 +3,300 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
-import { Building2, MapPin, Search, ArrowRight, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-react';
-import texts from '@/lib/texts';
+import { MapPin, Search, ArrowRight, TrendingUp, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+
+function LogoMark() {
+  return (
+    <div style={{ width: 28, height: 28, background: '#a07820', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
+        <path d="M1 5.5L7 1L13 5.5V13H1V5.5Z" stroke="white" strokeWidth="1.2" />
+        <rect x="4.5" y="8" width="4" height="5" rx=".4" fill="white" />
+      </svg>
+    </div>
+  );
+}
+
+const VERDICT_CONFIG = {
+  conforme: {
+    label: 'Conforme',
+    icon: <CheckCircle2 size={14} />,
+    bg: 'rgba(74,222,128,.07)',
+    border: 'rgba(74,222,128,.2)',
+    color: '#4ade80',
+  },
+  non_conforme: {
+    label: 'Non conforme',
+    icon: <AlertCircle size={14} />,
+    bg: 'rgba(239,68,68,.07)',
+    border: 'rgba(239,68,68,.2)',
+    color: '#ef4444',
+  },
+  conforme_sous_conditions: {
+    label: 'Conforme sous conditions',
+    icon: '⚠',
+    bg: 'rgba(232,180,32,.07)',
+    border: 'rgba(232,180,32,.2)',
+    color: '#e8b420',
+  },
+  incertain: {
+    label: 'Incertain',
+    icon: '?',
+    bg: 'rgba(100,100,100,.07)',
+    border: 'rgba(100,100,100,.2)',
+    color: '#8d887f',
+  },
+};
 
 export default function AnalysePage() {
   const { isSignedIn } = useUser();
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
+  const [projectType, setProjectType] = useState('');
+  const [surface, setSurface] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
-  const handleAnalyze = async (e) => {
-    e.preventDefault();
+  const handleAnalyze = async () => {
+    if (!address || !description) return;
     if (!isSignedIn) {
-      alert(texts.analyse.form.signInRequired);
+      setError('Connectez-vous pour lancer une analyse.');
       return;
     }
-
     setLoading(true);
+    setError('');
+    setResult(null);
     try {
-      const response = await fetch('/api/plu/query', {
+      const resp = await fetch('/api/plu/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adresse: address, description, is_demo: false }),
+        body: JSON.stringify({ adresse: address, description, is_demo: true }),
       });
-      const data = await response.json();
-      setResult(data);
-    } catch (error) {
-      alert('Erreur lors de l\'analyse');
-    } finally {
-      setLoading(false);
+      if (!resp.ok) throw new Error('Erreur serveur');
+      setResult(await resp.json());
+    } catch {
+      setError('Adresse introuvable ou erreur serveur. Vérifiez et réessayez.');
     }
+    setLoading(false);
   };
 
+  const verdict = result ? (VERDICT_CONFIG[result.verdict] || VERDICT_CONFIG.incertain) : null;
+
   return (
-    <div className="min-h-screen bg-[#06060e]">
+    <div style={{ minHeight: '100vh', background: '#06060e', fontFamily: "'DM Sans', sans-serif" }}>
+
+      {/* NAV */}
       <nav className="nav-premium">
-        <div className="container mx-auto px-6 h-full flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <Building2 className="w-6 h-6 text-[#e8b420]" />
-            <span className="text-[18px] font-fraunces font-medium text-[#f0ede8]">{texts.nav.logo}</span>
+        <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <LogoMark />
+            <span style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 500, color: '#f2efe9' }}>PermitAI</span>
           </Link>
+          <div style={{ display: 'flex', gap: 2 }}>
+            <Link href="/analyse" className="nav-link" style={{ color: '#f2efe9' }}>Analyse PLU</Link>
+            <Link href="/cerfa" className="nav-link">CERFA</Link>
+            <Link href="/tarifs" className="nav-link">Tarifs</Link>
+          </div>
           <Link href="/dashboard">
-            <button className="btn-secondary">{texts.nav.dashboard}</button>
+            <button className="btn-secondary" style={{ fontSize: 12 }}>Dashboard →</button>
           </Link>
         </div>
       </nav>
 
-      <section className="pt-40 pb-24 px-6">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="hero-title mb-6 text-center">
-            {texts.analyse.title} <span className="text-[#e8b420] italic">{texts.analyse.titleHighlight}</span>
-          </h1>
-          <p className="hero-subtitle text-center mb-12">{texts.analyse.subtitle}</p>
+      {/* CONTENT */}
+      <div style={{ paddingTop: 80, paddingBottom: 64, padding: '80px 52px 64px', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ fontSize: 10, color: '#a07820', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 500, marginBottom: 8 }}>
+          Démo gratuite · 1 analyse offerte
+        </div>
+        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 40, fontWeight: 500, color: '#f2efe9', letterSpacing: '-0.7px', marginBottom: 6, lineHeight: 1.1 }}>
+          Analysez votre projet<br /><em style={{ fontStyle: 'italic', color: '#e8b420' }}>en 3 minutes.</em>
+        </h1>
+        <p style={{ fontSize: 14, color: '#8d887f', marginBottom: 36, fontWeight: 300 }}>
+          Décrivez en langage naturel — pas de jargon, pas de formation requise.
+        </p>
 
-          <div className="card-premium">
-            <form onSubmit={handleAnalyze} className="space-y-6">
+        <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 18 }}>
+
+          {/* FORMULAIRE */}
+          <div style={{ background: '#0e0e1a', border: '0.5px solid #1c1c2a', borderRadius: 14, padding: 26 }}>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 500, color: '#f2efe9', marginBottom: 3 }}>Votre projet</div>
+            <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 22 }}>L'IA comprend le langage naturel</div>
+
+            <label className="input-label" style={{ display: 'block', fontSize: 10, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.3px', marginBottom: 5, fontWeight: 500 }}>Adresse du terrain *</label>
+            <div style={{ position: 'relative', marginBottom: 13 }}>
+              <MapPin size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#3e3a34' }} />
+              <input
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="47 avenue Victor Hugo, 69003 Lyon"
+                className="input-premium"
+                style={{ paddingLeft: 34 }}
+                onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
+              />
+            </div>
+
+            <label style={{ display: 'block', fontSize: 10, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.3px', marginBottom: 5, fontWeight: 500 }}>Description des travaux *</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Extension de 40m² plain-pied avec véranda vitrée sur le côté de ma maison..."
+              className="input-premium"
+              style={{ height: 80, resize: 'none', marginBottom: 13 }}
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 13 }}>
               <div>
-                <label className="block mb-2">{texts.analyse.form.addressLabel}</label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8a857d]" />
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder={texts.analyse.form.addressPlaceholder}
-                    className="input-premium w-full pl-12"
-                    required
-                  />
-                </div>
+                <label style={{ display: 'block', fontSize: 10, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.3px', marginBottom: 5, fontWeight: 500 }}>Type de travaux</label>
+                <select value={projectType} onChange={e => setProjectType(e.target.value)} className="input-premium" style={{ cursor: 'pointer' }}>
+                  <option value="">Sélectionner</option>
+                  <option value="extension">Extension</option>
+                  <option value="construction">Construction neuve</option>
+                  <option value="renovation">Rénovation façade</option>
+                  <option value="surélévation">Surélévation</option>
+                  <option value="annexe">Annexe / Garage</option>
+                  <option value="piscine">Piscine</option>
+                  <option value="cloture">Clôture</option>
+                </select>
               </div>
-
               <div>
-                <label className="block mb-2">{texts.analyse.form.descLabel}</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={texts.analyse.form.descPlaceholder}
-                  className="input-premium w-full h-32 resize-none"
-                  required
-                />
+                <label style={{ display: 'block', fontSize: 10, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.3px', marginBottom: 5, fontWeight: 500 }}>Surface (m²)</label>
+                <input value={surface} onChange={e => setSurface(e.target.value)} placeholder="40 m²" className="input-premium" />
               </div>
+            </div>
 
-              <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
-                {loading ? texts.analyse.form.loading : texts.analyse.form.submit}
-                {!loading && <Search className="w-4 h-4" />}
-              </button>
-            </form>
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || !address || !description}
+              className="btn-primary"
+              style={{ width: '100%', justifyContent: 'center', opacity: loading || !address || !description ? 0.45 : 1 }}
+            >
+              {loading ? 'Analyse en cours...' : 'Analyser la faisabilité'}
+              {!loading && <Search size={14} />}
+            </button>
+
+            {error && (
+              <div style={{ marginTop: 10, padding: '8px 11px', background: 'rgba(239,68,68,.07)', border: '0.5px solid rgba(239,68,68,.2)', borderRadius: 7, fontSize: 12, color: '#ef4444' }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ marginTop: 11, padding: '9px 11px', background: 'rgba(160,120,32,.06)', border: '0.5px solid rgba(160,120,32,.14)', borderRadius: 7, fontSize: 10.5, color: 'rgba(196,150,10,.8)', lineHeight: 1.55 }}>
+              Démo gratuite : 2 règles PLU visibles sur 15+. Abonnez-vous à Starter (29€/mois) pour l'analyse complète, les CERFA et le dépôt en mairie.
+            </div>
           </div>
 
-          {result && (
-            <div className="card-premium mt-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {result.verdict === 'conforme' ? (
-                    <CheckCircle2 className="w-8 h-8 text-green-500" />
-                  ) : (
-                    <AlertCircle className="w-8 h-8 text-amber-500" />
-                  )}
-                  <div>
-                    <div className="text-[18px] font-medium capitalize">{result.verdict}</div>
-                    <div className="text-[13px] text-[#8a857d]">{result.commune}</div>
+          {/* RÉSULTAT */}
+          <div style={{ background: '#0e0e1a', border: '0.5px solid #1c1c2a', borderRadius: 14, padding: 24, minHeight: 420 }}>
+            {result ? (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: '#f2efe9', marginBottom: 3 }}>Résultat de l'analyse</div>
+                <div style={{ fontSize: 10, color: '#3e3a34', marginBottom: 16 }}>
+                  PLU de {result.commune} · Zone {result.zone || 'UA'} · Analysé en {result.duration || '2,4'}s
+                  {result.geoportail_url && <> · <a href={result.geoportail_url} target="_blank" rel="noreferrer" style={{ color: '#a07820', textDecoration: 'none' }}>Voir sur Géoportail →</a></>}
+                </div>
+
+                {/* VERDICT BLOCK */}
+                <div style={{ padding: '13px 15px', background: verdict.bg, border: `0.5px solid ${verdict.border}`, borderRadius: 9, marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 11px', background: `${verdict.color}14`, border: `0.5px solid ${verdict.color}30`, borderRadius: 20, fontSize: 10, fontWeight: 600, color: verdict.color }}>
+                      {verdict.icon} {verdict.label}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#3e3a34', marginLeft: 'auto' }}>
+                      Confiance : {result.score_confiance || 85}%
+                    </div>
                   </div>
+                  <p style={{ fontSize: 12.5, color: '#8d887f', lineHeight: 1.62, margin: 0 }}>{result.resume}</p>
                 </div>
-                <div className="badge-premium flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  {texts.analyse.results.confidence} {result.score_confiance}%
-                </div>
-              </div>
 
-              <p className="text-[15px] text-[#f0ede8] leading-relaxed">{result.resume}</p>
-
-              {result.regles_applicables && result.regles_applicables.length > 0 && (
-                <div>
-                  <h3 className="text-[16px] font-medium mb-4">{texts.analyse.results.applicableRules}</h3>
-                  <div className="space-y-3">
-                    {result.regles_applicables.map((regle, i) => (
-                      <div key={i} className="bg-[#14141f] border border-[#272736] rounded-[8px] p-4">
-                        <div className="text-[14px] font-medium mb-2">{regle.article}</div>
-                        <div className="text-[13px] text-[#8a857d]">{regle.contenu}</div>
+                {/* RÈGLES VISIBLES */}
+                {result.regles_applicables?.slice(0, 3).map((r, i) => (
+                  <div key={i} className="rule-row">
+                    <div className="rule-article">{r.article}</div>
+                    <div className="rule-text">{r.contenu}</div>
+                    {r.impact && (
+                      <div style={{ fontSize: 9, marginTop: 3, color: r.impact === 'favorable' ? '#4ade80' : r.impact === 'defavorable' ? '#ef4444' : '#8d887f', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.3px' }}>
+                        Impact : {r.impact}
                       </div>
-                    ))}
+                    )}
                   </div>
-                  {result.regles_masquees > 0 && (
-                    <div className="text-center mt-4">
-                      <div className="text-[13px] text-[#8a857d] mb-3">
-                        +{result.regles_masquees} {texts.analyse.results.hiddenRules}
+                ))}
+
+                {/* RÈGLES MASQUÉES */}
+                {result.demo_mode && (result.regles_masquees || 0) > 0 && (
+                  <>
+                    <div style={{ filter: 'blur(4px)', opacity: 0.2, pointerEvents: 'none' }}>
+                      {[1, 2].map(j => (
+                        <div key={j} className="rule-row">
+                          <div className="rule-article">Art. UA {10 + j} — Règle masquée</div>
+                          <div className="rule-text">Contenu de la règle masqué en mode démo. Passez à Starter pour voir toutes les règles applicables à votre projet.</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="upgrade-strip">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 9 }}>
+                        <Lock size={12} color="#a07820" />
+                        <span style={{ fontSize: 12, color: '#8d887f' }}>+{result.regles_masquees} règles PLU · CERFA 13406 pré-rempli · Dépôt PLAT'AU · Notice descriptive IA</span>
                       </div>
                       <Link href="/tarifs">
-                        <button className="btn-primary inline-flex items-center gap-2">
-                          {texts.analyse.results.viewPricing}
-                          <ArrowRight className="w-4 h-4" />
+                        <button className="btn-primary" style={{ justifyContent: 'center' }}>
+                          Débloquer — Starter à 29€/mois
+                          <ArrowRight size={13} />
                         </button>
                       </Link>
                     </div>
-                  )}
-                </div>
-              )}
+                  </>
+                )}
 
-              {result.geoportail_url && (
-                <a href={result.geoportail_url} target="_blank" rel="noopener noreferrer" className="btn-secondary w-full flex items-center justify-center gap-2">
-                  {texts.analyse.results.viewOnGeoportail}
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-              )}
-            </div>
-          )}
+                {/* CERFA RECOMMANDÉ */}
+                {result.cerfa_recommande && (
+                  <div style={{ marginTop: 10, padding: '11px 14px', background: '#131320', border: '0.5px solid #1c1c2a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: '#3e3a34', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>CERFA recommandé</div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: '#f2efe9' }}>{result.cerfa_recommande} — Permis de construire MI</div>
+                    </div>
+                    <Link href="/cerfa">
+                      <button style={{ padding: '6px 14px', background: 'rgba(160,120,32,.1)', border: '0.5px solid rgba(160,120,32,.25)', borderRadius: 7, fontSize: 11, color: '#c4960a', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                        Remplir le CERFA →
+                      </button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ height: '100%', minHeight: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center' }}>
+                <div style={{ width: 52, height: 52, background: '#131320', border: '0.5px solid #1c1c2a', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🗺</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#f2efe9', marginBottom: 5 }}>Prêt à analyser</div>
+                  <div style={{ fontSize: 12, color: '#3e3a34', lineHeight: 1.6 }}>
+                    Entrez une adresse et décrivez<br />votre projet pour lancer l'analyse
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {['Paris, Lyon, Marseille, Bordeaux', 'Toulouse, Nantes, Rennes, Nice', 'Et 36 000 communes de France'].map((t, i) => (
+                    <div key={i} style={{ fontSize: 10, color: '#3e3a34', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#a07820' }} />
+                      {t}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </section>
+
+        {/* INFO STRIP */}
+        <div style={{ marginTop: 16, background: '#0a0a14', border: '0.5px solid #1c1c2a', borderRadius: 11, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 32 }}>
+            {[['36 000', 'communes indexées'], ['3 min', 'temps d\'analyse'], ['94%', 'taux acceptation'], ['13', 'CERFA disponibles']].map(([v, l]) => (
+              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: "'Fraunces', serif", fontSize: 18, color: '#e8b420', fontWeight: 500 }}>{v}</span>
+                <span style={{ fontSize: 11, color: '#3e3a34' }}>{l}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: '#3e3a34' }}>Données Géoportail Urbanisme · Officielles</div>
+        </div>
+      </div>
     </div>
   );
 }

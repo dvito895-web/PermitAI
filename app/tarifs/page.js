@@ -1,275 +1,490 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser } from '@clerk/nextjs';
-import { Check, Building2, ArrowRight, Star } from 'lucide-react';
 import { useState } from 'react';
-import { texts } from '@/lib/texts';
+import { ArrowRight } from 'lucide-react';
+
+function LogoMark() {
+  return (
+    <div style={{ width: 30, height: 30, background: '#a07820', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <path d="M1 5.5L7 1L13 5.5V13H1V5.5Z" stroke="white" strokeWidth="1.2" />
+        <rect x="4.5" y="8" width="4" height="5" rx=".4" fill="white" />
+      </svg>
+    </div>
+  );
+}
+
+/* ─── PLANS ───────────────────────────────────────────────
+   MENSUEL  : prix affiché + prix barré (pas de %)
+   ANNUEL   : total/an + barré(mensuel×12) + % réel + equiv mensuelle
+   ──────────────────────────────────────────────────────── */
+const PLANS = [
+  {
+    id: 'free',
+    name: 'Gratuit',
+    segment: 'Pour découvrir sans engagement',
+    monthlyPrice: 0,
+    monthlyOrig:  0,
+    annualTotal:  0,
+    annualOrig:   0,
+    annualMonthly:0,
+    annualPct:    0,
+    bonus: null,
+    showSub: false,
+    features: [
+      '1 analyse PLU par mois',
+      '2 règles visibles sur 15+',
+      'Résumé en 1 phrase',
+      'IA Standard',
+    ],
+    locked: ['CERFA + PDF officiel', 'Dépôt en mairie', 'Alertes PLU'],
+    cta: 'Commencer gratuitement',
+    ctaStyle: 'ghost',
+    popular: false,
+  },
+  {
+    id: 'starter',
+    name: 'Starter',
+    segment: 'Pour les particuliers',
+    monthlyPrice:  29,
+    monthlyOrig:   49,
+    annualTotal:  228,   // 19 × 12
+    annualOrig:   348,   // 29 × 12
+    annualMonthly: 19,
+    annualPct:     34,   // (348-228)/348
+    bonus: '1 refus évité = 86 mois d\'abonnement',
+    showSub: true,
+    features: [
+      '⭐ IA Premium',
+      '8 analyses PLU / mois',
+      'Toutes les règles PLU applicables',
+      '3 CERFA + PDF officiel',
+      '2 dépôts mairie / mois',
+      'Notice descriptive IA',
+      'Alertes délais légaux',
+      'Suivi 3 dossiers · Support 48h',
+    ],
+    locked: [],
+    cta: 'Choisir Starter',
+    ctaStyle: 'outline',
+    popular: false,
+  },
+  {
+    id: 'pro',
+    name: 'Pro Immobilier',
+    segment: 'Pour les agents et constructeurs',
+    monthlyPrice:  89,
+    monthlyOrig:  129,
+    annualTotal:  588,   // 49 × 12
+    annualOrig:  1068,   // 89 × 12
+    annualMonthly: 49,
+    annualPct:     45,   // (1068-588)/1068
+    bonus: '3 analyses / jour · ROI dès le 1er mois',
+    showSub: true,
+    features: [
+      '⭐ IA Premium',
+      'Analyses PLU illimitées',
+      'Les 13 CERFA illimités + PDF',
+      'Dépôts illimités PLAT\'AU + LRAR',
+      '5 utilisateurs inclus',
+      'Extension Chrome agents immo',
+      'Alertes révisions PLU communes',
+      'Export historique · Support 4h',
+    ],
+    locked: [],
+    cta: 'Choisir Pro',
+    ctaStyle: 'primary',
+    popular: true,
+  },
+  {
+    id: 'cabinet',
+    name: 'Cabinet',
+    segment: 'Pour les cabinets et promoteurs',
+    monthlyPrice:  199,
+    monthlyOrig:   299,
+    annualTotal:  1188,  // 99 × 12
+    annualOrig:   2388,  // 199 × 12
+    annualMonthly:  99,
+    annualPct:      50,  // (2388-1188)/2388
+    bonus: '< 1h facturée à un client · Rentable J+1',
+    showSub: true,
+    features: [
+      '⭐ IA Premium',
+      'Tout Pro inclus',
+      'Utilisateurs illimités',
+      'Multi-clients & projets',
+      'API 2 000 req / mois',
+      'Account manager dédié',
+      'Export comptable CSV',
+      'Support dédié < 2h',
+    ],
+    locked: [],
+    cta: 'Nous contacter',
+    ctaStyle: 'outline',
+    popular: false,
+  },
+];
+
+const COMPARISON = [
+  ['Durée analyse PLU',   '3 minutes',        '3 à 6 semaines',    '4 à 8 semaines'],
+  ['Coût vérification',   '29€/mois',         '800 à 2 000€',      'Inclus mais lent'],
+  ['CERFA pré-remplis',   'Automatique',      'Manuel',            'Non'],
+  ['Dépôt en mairie',     '1 clic PLAT\'AU',  'Déplacement',       'Déplacement'],
+  ['Suivi dossier',       'Alertes auto',     'Relances manuelles','Non suivi'],
+  ['Révisions PLU',       'Alertes temps réel','Non surveillé',    'Non surveillé'],
+  ['Disponibilité',       '24h/24 7j/7',      'Heures bureau',     'Heures bureau'],
+];
+
+const FAQ_ITEMS = [
+  {
+    q: 'Mes données sont-elles sécurisées ?',
+    a: 'Oui. Toutes les données sont chiffrées en transit et au repos. Hébergement sur infrastructure européenne conforme RGPD. Vos dossiers sont privés et accessibles uniquement à vous.',
+  },
+  {
+    q: 'Puis-je annuler à tout moment ?',
+    a: 'Oui, sans engagement ni frais de résiliation. Vous pouvez annuler depuis votre dashboard à tout moment. Vous conservez l\'accès jusqu\'à la fin de la période payée.',
+  },
+  {
+    q: 'Les analyses sont-elles fiables juridiquement ?',
+    a: 'PermitAI se base sur les PLU officiels du Géoportail Urbanisme. L\'IA cite les articles exacts. PermitAI est un outil d\'aide à la décision et ne remplace pas un avis professionnel pour les cas complexes.',
+  },
+  {
+    q: 'Que faire si ma commune n\'est pas indexée ?',
+    a: 'Nous indexons en continu. Si votre commune n\'est pas encore couverte, nous affichons le lien direct vers le PLU sur Géoportail et vous notifions dès qu\'elle est disponible.',
+  },
+];
+
+const GUARANTEES = [
+  { icon: '🔒', title: 'Sans engagement',      sub: 'Résiliez en 1 clic' },
+  { icon: '⚡', title: '3 minutes',             sub: 'Résultat garanti' },
+  { icon: '🏛', title: 'Données officielles',   sub: 'Géoportail Urbanisme' },
+  { icon: '★',  title: '94% accordés',          sub: 'Contre 70% sans outil' },
+  { icon: '🗺', title: '36 000',                sub: 'Communes PLU indexées' },
+];
+
+/* ─── SVG helpers ─── */
+function CheckIcon({ color }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+      <circle cx="7" cy="7" r="6" fill={`${color}14`} stroke={`${color}36`} strokeWidth="1" />
+      <path d="M4.5 7l2 2L9.5 5" stroke={color} strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CrossIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+      <line x1="4.5" y1="4.5" x2="9.5" y2="9.5" stroke="#1a1a2c" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="9.5" y1="4.5" x2="4.5" y2="9.5" stroke="#1a1a2c" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StarCheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+      <circle cx="7" cy="7" r="6" fill="rgba(232,180,32,.1)" stroke="rgba(232,180,32,.3)" strokeWidth="1" />
+      <path d="M4.5 7l2 2L9.5 5" stroke="#e8b420" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function fmt(n) {
+  return n > 999 ? n.toLocaleString('fr-FR') : String(n);
+}
 
 export default function TarifsPage() {
-  const { isSignedIn } = useUser();
-  const [billingCycle, setBillingCycle] = useState('monthly');
-
-  const plans = [
-    {
-      name: 'Gratuit',
-      price: billingCycle === 'monthly' ? 0 : 0,
-      period: '',
-      description: 'Pour decouvrir',
-      features: [
-        texts.pricing.aiStandard,
-        '1 seule analyse PLU',
-        '2 regles visibles sur 15+',
-        'Resume de 1 phrase',
-        'CERFA non disponible',
-        'Depot en mairie non disponible',
-        'Aucune alerte',
-        'Aucun suivi'
-      ],
-      cta: 'Commencer gratuitement',
-      ctaLink: '/sign-up',
-      popular: false,
-      isPremiumAI: false,
-    },
-    {
-      name: 'Starter',
-      price: billingCycle === 'monthly' ? 29 : 290,
-      period: billingCycle === 'monthly' ? '/mois' : '/an',
-      description: 'Pour les particuliers',
-      features: [
-        texts.pricing.aiPremium,
-        '8 analyses PLU completes par mois',
-        'Toutes les regles visibles',
-        '3 CERFA avec PDF officiel (PC MI, DP MI, CU)',
-        '2 depots en mairie par mois',
-        'Liste des pieces obligatoires',
-        'Notice descriptive IA',
-        'Alertes delais legaux',
-        'Suivi de 3 dossiers max',
-        'Support email sous 48h'
-      ],
-      highlight: '1 refus evite = 30 mois d abonnement',
-      cta: 'Choisir Starter',
-      ctaLink: '/sign-up',
-      popular: false,
-      isPremiumAI: true,
-    },
-    {
-      name: 'Pro',
-      price: billingCycle === 'monthly' ? 89 : 890,
-      period: billingCycle === 'monthly' ? '/mois' : '/an',
-      description: 'Pour les professionnels',
-      features: [
-        texts.pricing.aiPremium,
-        'Analyses PLU illimitees',
-        'Les 13 CERFA illimites avec PDF',
-        'Depots illimites via PLAT AU et LRAR',
-        '5 utilisateurs inclus',
-        'Extension Chrome',
-        'Alertes PLU sur communes suivies',
-        'Export historique PDF',
-        'Suivi illimite de dossiers',
-        'Support prioritaire sous 4h'
-      ],
-      highlight: 'Le plus populaire',
-      cta: 'Choisir Pro',
-      ctaLink: '/sign-up',
-      popular: true,
-      isPremiumAI: true,
-    },
-    {
-      name: 'Cabinet',
-      price: billingCycle === 'monthly' ? 199 : 1990,
-      period: billingCycle === 'monthly' ? '/mois' : '/an',
-      description: 'Pour les cabinets',
-      features: [
-        texts.pricing.aiPremium,
-        'Tout Pro inclus',
-        'Utilisateurs illimites',
-        'Gestion multi-clients',
-        'Tableau de bord equipe',
-        'Acces API (2000 appels/mois)',
-        'Export comptable CSV',
-        'Support dedie sous 2h'
-      ],
-      cta: 'Choisir Cabinet',
-      ctaLink: '/sign-up',
-      popular: false,
-      isPremiumAI: true,
-    }
-  ];
+  const [billing, setBilling]   = useState('monthly');
+  const [openFaq, setOpenFaq]   = useState(null);
+  const isAnnual = billing === 'annual';
 
   return (
-    <div className="min-h-screen bg-[#06060e] text-white">
-      {/* Navigation */}
-      <nav className="border-b border-white/10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <Building2 className="w-8 h-8 text-[#E8B420]" />
-              <span className="text-2xl font-fraunces font-bold">PermitAI</span>
-            </Link>
-            <Link href="/">
-              <button className="text-sm hover:text-[#E8B420] transition-colors">
-                Retour a l accueil
-              </button>
-            </Link>
-          </div>
+    <div style={{ minHeight: '100vh', background: '#06060e', fontFamily: "'DM Sans', sans-serif", color: '#f2efe9' }}>
+
+      {/* ── NAV ── */}
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, height: 60, borderBottom: '0.5px solid #1c1c2a', background: 'rgba(6,6,14,.97)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
+            <LogoMark />
+            <span style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 500, color: '#f2efe9' }}>PermitAI</span>
+          </Link>
+          <Link href="/" style={{ fontSize: 12, color: '#5a5650', textDecoration: 'none' }}>← Retour à l'accueil</Link>
         </div>
       </nav>
 
-      {/* Header */}
-      <section className="pt-20 pb-12 px-6">
-        <div className="container mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-fraunces font-bold mb-6">
-            Tarifs simples et <span className="text-[#E8B420] italic">transparents</span>
+      {/* ── HEADER ── */}
+      <div style={{ padding: '60px 52px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 35% at 50% 0%, rgba(160,120,32,.06), transparent)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+
+          {/* LIVE DOT */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 14px', border: '0.5px solid rgba(239,68,68,.2)', borderRadius: 20, background: 'rgba(239,68,68,.06)', marginBottom: 26 }}>
+            <span style={{ display: 'block', width: 6, height: 6, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,.18)' }} />
+            <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 500 }}>30% des dossiers refusés au 1er dépôt en France</span>
+          </div>
+
+          <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 52, fontWeight: 500, color: '#f2efe9', letterSpacing: -1.4, lineHeight: 1.06, marginBottom: 12 }}>
+            Simple, transparent,<br />
+            <em style={{ fontStyle: 'italic', color: '#e8b420' }}>sans surprise.</em>
           </h1>
-          <p className="text-xl text-gray-300 mb-8">
-            Choisissez le plan qui correspond a vos besoins
+          <p style={{ fontSize: 14, color: '#5a5650', fontWeight: 300, marginBottom: 4 }}>
+            Un refus de permis = <strong style={{ color: '#f2efe9', fontWeight: 500 }}>6 mois de retard</strong> et jusqu'à <strong style={{ color: '#f2efe9', fontWeight: 500 }}>15 000€.</strong>
           </p>
-          
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-6 py-2 rounded-lg transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-[#A07820] text-white'
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
-              }`}
-            >
+          <p style={{ fontSize: 15, color: '#f2efe9', fontWeight: 400, marginBottom: 28 }}>
+            PermitAI à 29€/mois — <span style={{ color: '#4ade80', fontWeight: 500 }}>60× moins cher que l'alternative.</span>
+          </p>
+
+          {/* TOGGLE */}
+          <div style={{ display: 'inline-flex', background: '#0c0c16', border: '0.5px solid #1e1e2c', borderRadius: 10, padding: 3, gap: 2, marginBottom: isAnnual ? 12 : 44 }}>
+            <button onClick={() => setBilling('monthly')} style={{ padding: '9px 24px', background: !isAnnual ? '#14141e' : 'transparent', color: !isAnnual ? '#f2efe9' : '#5a5650', borderRadius: 7, fontSize: 12, fontWeight: !isAnnual ? 500 : 400, border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
               Mensuel
             </button>
-            <button
-              onClick={() => setBillingCycle('yearly')}
-              className={`px-6 py-2 rounded-lg transition-all ${
-                billingCycle === 'yearly'
-                  ? 'bg-[#A07820] text-white'
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
-              }`}
-            >
+            <button onClick={() => setBilling('annual')} style={{ padding: '9px 24px', background: isAnnual ? '#14141e' : 'transparent', color: isAnnual ? '#f2efe9' : '#5a5650', borderRadius: 7, fontSize: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: isAnnual ? 500 : 400, fontFamily: "'DM Sans', sans-serif" }}>
               Annuel
-              <span className="ml-2 text-xs bg-[#E8B420] text-black px-2 py-1 rounded">2 mois offerts</span>
+              <span style={{ background: '#a07820', color: '#fff', fontSize: 9, padding: '2px 8px', borderRadius: 20, fontWeight: 700, letterSpacing: '.3px' }}>Jusqu'à -50%</span>
             </button>
           </div>
-        </div>
-      </section>
 
-      {/* Pricing Cards */}
-      <section className="pb-20 px-6">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {plans.map((plan, i) => (
-              <div
-                key={i}
-                className={`relative bg-white/5 border ${
-                  plan.popular ? 'border-[#E8B420]' : 'border-white/10'
-                } rounded-lg p-6 hover:bg-white/10 transition-all ${
-                  plan.popular ? 'transform scale-105' : ''
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-[#E8B420] text-black px-4 py-1 rounded-full text-sm font-semibold">
-                    Le plus populaire
-                  </div>
-                )}
-                
-                <div className="mb-6">
-                  <h3 className="text-2xl font-fraunces font-bold mb-2">{plan.name}</h3>
-                  <p className="text-sm text-gray-400 mb-4">{plan.description}</p>
-                  
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-bold text-[#E8B420]">{plan.price}</span>
-                    {plan.price > 0 && <span className="text-xl text-gray-400">EUR</span>}
-                    <span className="text-sm text-gray-400">{plan.period}</span>
-                  </div>
-                  
-                  {plan.highlight && (
-                    <div className="mt-3 text-xs text-[#E8B420] italic">{plan.highlight}</div>
-                  )}
+          {isAnnual && (
+            <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 44 }}>
+              Starter 19€/mois · Pro 49€/mois · Cabinet 99€/mois — facturés annuellement
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── PLANS ── */}
+      <div style={{ padding: '0 52px 52px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1200, margin: '0 auto' }}>
+        {PLANS.map((plan) => {
+          const price  = isAnnual ? plan.annualTotal   : plan.monthlyPrice;
+          const orig   = isAnnual ? plan.annualOrig    : plan.monthlyOrig;
+          const pct    = isAnnual ? plan.annualPct     : 0;
+          const equiv  = isAnnual ? plan.annualMonthly : null;
+          const isHot  = plan.popular;
+          const ckColor = isHot ? '#e8b420' : '#a07820';
+          const fcol    = isHot ? '#8d887f' : '#5a5650';
+
+          return (
+            <div
+              key={plan.id}
+              style={{
+                border: isHot ? '1.5px solid rgba(232,180,32,.32)' : '0.5px solid #1c1c2a',
+                borderRadius: 18,
+                padding: '26px 22px',
+                background: isHot ? 'linear-gradient(175deg, #0d0d1b, rgba(160,120,32,.06))' : '#09090f',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: isHot ? '0 0 80px rgba(160,120,32,.07)' : 'none',
+              }}
+            >
+              {/* BADGE */}
+              {isHot && (
+                <div style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: '#a07820', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 15px', borderRadius: 20, whiteSpace: 'nowrap', letterSpacing: '.5px' }}>
+                  ⭐ Le plus populaire
                 </div>
-                
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, j) => {
-                    const isAIPremium = j === 0 && plan.isPremiumAI && (feature.includes('Premium') || feature.includes('Claude'));
-                    
-                    return (
-                      <li key={j} className="flex items-start gap-2 text-sm">
-                        <Check className="w-5 h-5 text-[#E8B420] flex-shrink-0 mt-0.5" />
-                        <span className={isAIPremium ? 'font-semibold' : ''}>
-                          {feature}
-                          {isAIPremium && (
-                            <Star className="inline-block w-4 h-4 ml-1 text-[#E8B420] fill-[#E8B420]" />
-                          )}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                
-                <Link href={plan.ctaLink}>
-                  <button
-                    className={`w-full py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${
-                      plan.popular
-                        ? 'bg-[#A07820] hover:bg-[#E8B420] text-white'
-                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                    }`}
-                  >
-                    {plan.cta}
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </Link>
+              )}
+
+              {/* TITRE + SEGMENT */}
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 21, fontWeight: 500, color: '#f2efe9', letterSpacing: -.2, marginBottom: 3 }}>{plan.name}</div>
+              <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 18 }}>{plan.segment}</div>
+
+              {/* PRIX */}
+              {plan.id === 'free' ? (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: 48, color: '#f2efe9', fontWeight: 500, letterSpacing: -1.4, lineHeight: 1, marginBottom: 3 }}>0€</div>
+                  <div style={{ fontSize: 11, color: '#3e3a34' }}>Pour découvrir sans engagement</div>
+                </div>
+              ) : !isAnnual ? (
+                /* MENSUEL */
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 4 }}>
+                    <span style={{ fontFamily: "'Fraunces', serif", fontSize: 48, color: '#e8b420', fontWeight: 500, letterSpacing: -1.4, lineHeight: 1 }}>{price}€</span>
+                    <span style={{ fontFamily: "'Fraunces', serif", fontSize: 20, color: '#252535', textDecoration: 'line-through', fontWeight: 400 }}>{orig}€</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#5a5650' }}>/mois · sans engagement</div>
+                </div>
+              ) : (
+                /* ANNUEL */
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+                        <span style={{ fontFamily: "'Fraunces', serif", fontSize: 48, color: '#e8b420', fontWeight: 500, letterSpacing: -1.4, lineHeight: 1 }}>{fmt(price)}€</span>
+                        <span style={{ fontFamily: "'Fraunces', serif", fontSize: 20, color: '#252535', textDecoration: 'line-through', fontWeight: 400 }}>{fmt(orig)}€</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#5a5650' }}>/an · soit <span style={{ color: '#4ade80', fontWeight: 500 }}>{equiv}€/mois</span></div>
+                    </div>
+                    <div style={{ background: 'rgba(232,180,32,.12)', border: '0.5px solid rgba(232,180,32,.28)', borderRadius: 20, padding: '4px 10px', fontSize: 11, color: '#e8b420', fontWeight: 700, marginTop: 5, flexShrink: 0 }}>-{pct}%</div>
+                  </div>
+                </div>
+              )}
+
+              {/* BONUS */}
+              {plan.bonus && (
+                isAnnual ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px', background: 'linear-gradient(90deg, rgba(74,222,128,.09), rgba(74,222,128,.04))', border: '0.5px solid rgba(74,222,128,.22)', borderRadius: 9, marginBottom: 16 }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                      <circle cx="7" cy="7" r="6" fill="rgba(74,222,128,.15)" stroke="rgba(74,222,128,.32)" strokeWidth="1" />
+                      <path d="M4.5 7l2 2L9.5 5" stroke="#4ade80" strokeWidth="1.3" strokeLinecap="round" />
+                    </svg>
+                    <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 500 }}>{plan.bonus}</span>
+                  </div>
+                ) : (
+                  <div style={{ padding: '7px 12px', borderLeft: `2px solid ${isHot ? 'rgba(232,180,32,.45)' : 'rgba(160,120,32,.35)'}`, background: isHot ? 'rgba(232,180,32,.04)' : 'rgba(160,120,32,.03)', borderRadius: '0 7px 7px 0', fontSize: 11, color: isHot ? '#c4960a' : '#a07820', fontStyle: 'italic', marginBottom: 16 }}>
+                    {plan.bonus}
+                  </div>
+                )
+              )}
+              {!plan.bonus && <div style={{ height: 14 }} />}
+
+              {/* SÉPARATEUR */}
+              <div style={{ height: '0.5px', background: isHot ? 'rgba(232,180,32,.12)' : '#1a1a24', marginBottom: 14 }} />
+
+              {/* FEATURES */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {plan.features.map((f, j) => {
+                  const isIA = f.startsWith('⭐');
+                  return (
+                    <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: plan.id === 'free' ? '#5a5650' : isIA ? '#e8b420' : fcol, fontWeight: isIA ? 600 : 400, lineHeight: 1.45 }}>
+                      {isIA ? <StarCheckIcon /> : <CheckIcon color={plan.id === 'free' ? '#3a3a4a' : ckColor} />}
+                      <span>{isIA ? 'IA Premium' : f}</span>
+                    </div>
+                  );
+                })}
+                {plan.locked.length > 0 && (
+                  <>
+                    <div style={{ height: '0.5px', background: '#1a1a24', margin: '4px 0' }} />
+                    {plan.locked.map((f, j) => (
+                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#1a1a2c' }}>
+                        <CrossIcon /><span>{f}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
+
+              {/* CTA */}
+              <button
+                style={{
+                  width: '100%',
+                  marginTop: 20,
+                  padding: isHot ? '14px 0' : '12px 0',
+                  background: plan.ctaStyle === 'primary' ? 'linear-gradient(90deg, #a07820, #c4960a)' : 'transparent',
+                  border: plan.ctaStyle === 'primary' ? 'none' : `0.5px solid ${plan.id === 'free' ? '#1c1c2a' : 'rgba(160,120,32,.3)'}`,
+                  borderRadius: 10,
+                  color: plan.ctaStyle === 'primary' ? '#fff' : plan.id === 'free' ? '#3e3a34' : '#c4960a',
+                  fontSize: isHot ? 13 : 12,
+                  fontWeight: isHot ? 600 : 500,
+                  fontFamily: "'DM Sans', sans-serif",
+                  cursor: 'pointer',
+                }}
+              >
+                {plan.cta}
+              </button>
+
+              {/* SOUS-CTA */}
+              {plan.showSub && (
+                <div style={{ textAlign: 'center', marginTop: 7, fontSize: 10, color: '#3e3a34' }}>
+                  Sans engagement · Résiliation en 1 clic
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── GARANTIES ── */}
+      <div style={{ padding: '0 52px 48px', maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ background: '#09090f', border: '0.5px solid #1c1c2a', borderRadius: 13, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', overflow: 'hidden' }}>
+          {GUARANTEES.map((g, i) => (
+            <div key={i} style={{ padding: '16px', borderRight: i < 4 ? '0.5px solid #1c1c2a' : 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 18, flexShrink: 0 }}>{g.icon}</div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 500, color: '#f2efe9', marginBottom: 1 }}>{g.title}</div>
+                <div style={{ fontSize: 10, color: '#3e3a34' }}>{g.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── COMPARAISON ── */}
+      <div style={{ padding: '0 52px 52px', maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ fontSize: 10, color: '#a07820', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 600, marginBottom: 8 }}>COMPARAISON</div>
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 28, fontWeight: 500, color: '#f2efe9', letterSpacing: -.4, marginBottom: 24 }}>PermitAI vs la méthode classique</h2>
+        <div style={{ border: '0.5px solid #1c1c2a', borderRadius: 12, overflow: 'hidden', background: '#09090f', marginBottom: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '10px 20px', borderBottom: '0.5px solid #1c1c2a' }}>
+            {['CRITÈRE', 'PERMITAI PRO', 'ARCHITECTE', 'SERVICE URBANISME'].map((h, i) => (
+              <div key={i} style={{ fontSize: 10, color: i === 1 ? '#a07820' : '#3e3a34', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 500 }}>{h}</div>
             ))}
           </div>
+          {COMPARISON.map((row, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '13px 20px', borderBottom: i < COMPARISON.length - 1 ? '0.5px solid #111118' : 'none', background: i % 2 !== 0 ? 'rgba(255,255,255,.01)' : 'transparent' }}>
+              <div style={{ fontSize: 13, color: '#8d887f' }}>{row[0]}</div>
+              <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6l2.5 2.5L9 4" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                {row[1]}
+              </div>
+              <div style={{ fontSize: 12, color: '#3e3a34' }}>{row[2]}</div>
+              <div style={{ fontSize: 12, color: '#3e3a34' }}>{row[3]}</div>
+            </div>
+          ))}
         </div>
-      </section>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {[['94%', 'des dossiers acceptés avec PermitAI', '#4ade80'], ['4 800+', 'utilisateurs actifs en France', '#e8b420'], ['€3 200', 'économies moyennes par refus évité', '#e8b420']].map((s, i) => (
+            <div key={i} style={{ border: '0.5px solid #1c1c2a', borderRadius: 10, padding: '20px 22px', background: '#09090f', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 30, color: s[2], fontWeight: 500, letterSpacing: -.5, flexShrink: 0 }}>{s[0]}</div>
+              <div style={{ fontSize: 12, color: '#5a5650', lineHeight: 1.5 }}>{s[1]}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      {/* Comparison Section */}
-      <section className="py-16 px-6 bg-white/5">
-        <div className="container mx-auto max-w-4xl">
-          <h2 className="text-3xl md:text-4xl font-fraunces font-bold text-center mb-12">
-            PermitAI vs Methode classique
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Architecte classique</h3>
-              <div className="space-y-2 text-sm text-gray-400">
-                <p>Prix : 800 a 2000 EUR par analyse</p>
-                <p>Delai : 3 a 6 semaines</p>
-                <p>Risque d erreur : Moyen</p>
-              </div>
+      {/* ── FAQ ── */}
+      <div style={{ padding: '0 52px 52px', maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ fontSize: 10, color: '#a07820', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 600, textAlign: 'center', marginBottom: 8 }}>FAQ</div>
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 500, color: '#f2efe9', letterSpacing: -.5, textAlign: 'center', marginBottom: 32 }}>Questions fréquentes</h2>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          {FAQ_ITEMS.map((item, i) => (
+            <div key={i} style={{ borderBottom: '0.5px solid #1c1c2a' }}>
+              <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{ width: '100%', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', color: '#f2efe9', fontSize: 14, fontFamily: "'DM Sans', sans-serif", textAlign: 'left', gap: 16 }}>
+                {item.q}
+                <span style={{ fontSize: 20, color: '#a07820', flexShrink: 0 }}>{openFaq === i ? '−' : '+'}</span>
+              </button>
+              {openFaq === i && (
+                <div style={{ paddingBottom: 18, fontSize: 13, color: '#5a5650', lineHeight: 1.72, fontWeight: 300 }}>{item.a}</div>
+              )}
             </div>
-            
-            <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Concurrents</h3>
-              <div className="space-y-2 text-sm text-gray-400">
-                <p>Prix : 150 EUR/mois</p>
-                <p>Sans IA</p>
-                <p>Interface complexe</p>
-              </div>
-            </div>
-            
-            <div className="bg-[#A07820]/20 border border-[#E8B420] rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4 text-[#E8B420]">PermitAI Pro</h3>
-              <div className="space-y-2 text-sm">
-                <p>Prix : 89 EUR/mois</p>
-                <p>Resultat : 3 minutes</p>
-                <p>IA de pointe</p>
-                <p className="text-[#E8B420] font-semibold">3 200 EUR economises en moyenne</p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
-      </section>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 py-12 px-6">
-        <div className="container mx-auto text-center text-sm text-gray-400">
-          <p>© 2025 PermitAI. Tous droits reserves.</p>
+      {/* ── CTA FINAL ── */}
+      <div style={{ padding: '0 52px 52px', maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ background: '#0c0c18', border: '0.5px solid #1c1c2a', borderRadius: 18, padding: '52px 40px', textAlign: 'center' }}>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 38, fontWeight: 500, color: '#f2efe9', letterSpacing: -.6, lineHeight: 1.1, marginBottom: 8 }}>Commencez gratuitement.</h2>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 38, fontWeight: 500, color: '#e8b420', fontStyle: 'italic', letterSpacing: -.6, marginBottom: 14 }}>Sans carte bancaire.</h2>
+          <p style={{ fontSize: 14, color: '#5a5650', fontWeight: 300, marginBottom: 28 }}>1 analyse offerte. Passez au payant seulement si ça vous convient.</p>
+          <Link href="/sign-up">
+            <button style={{ padding: '13px 32px', background: '#a07820', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              Essayer gratuitement <ArrowRight size={15} />
+            </button>
+          </Link>
         </div>
-      </footer>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div style={{ borderTop: '0.5px solid #1c1c2a', padding: '22px 52px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1200, margin: '0 auto' }}>
+        <p style={{ fontSize: 11, color: '#3e3a34' }}>© 2025 PermitAI · contact@permitai.eu</p>
+        <div style={{ display: 'flex', gap: 20 }}>
+          {['CGU', 'Confidentialité', 'Mentions légales'].map((l) => (
+            <Link key={l} href="/" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>{l}</Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
