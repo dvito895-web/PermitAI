@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /sign-in
+Disallow: /sign-up
+Sitemap: https://permitai.eu/sitemap.xml
