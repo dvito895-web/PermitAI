@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 
 function LogoMark() {
   return (
@@ -137,7 +139,60 @@ function CrossIcon() {
 export default function TarifsPage() {
   const [billing, setBilling] = useState('monthly');
   const [openFaq, setOpenFaq] = useState(null);
+  const [loading, setLoading] = useState(false);
   const isAnnual = billing === 'annual';
+  const router = useRouter();
+  const { isSignedIn } = useUser();
+
+  const handleSubscribe = async (planId, planName) => {
+    if (planId === 'free') {
+      router.push('/sign-up');
+      return;
+    }
+
+    if (!isSignedIn) {
+      router.push('/sign-up');
+      return;
+    }
+
+    if (planId === 'cabinet') {
+      window.location.href = 'mailto:contact@permitai.eu?subject=Demande plan Cabinet';
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Mapping planId + billing → priceId (placeholders pour l'instant)
+      const priceMap = {
+        starter_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_MONTHLY || 'price_placeholder_starter_monthly',
+        starter_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL || 'price_placeholder_starter_annual',
+        pro_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || 'price_placeholder_pro_monthly',
+        pro_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL || 'price_placeholder_pro_annual',
+      };
+
+      const priceId = priceMap[`${planId}_${billing}`];
+
+      const res = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, planName }),
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('Erreur création session');
+      }
+    } catch (error) {
+      console.error('Erreur checkout:', error);
+      alert('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#04040c', fontFamily: "'DM Sans', sans-serif", color: '#f2efe9' }}>
@@ -304,19 +359,24 @@ export default function TarifsPage() {
               </div>
 
               {/* CTA */}
-              <button style={{
-                width: '100%', marginTop: 20,
-                padding: isHot ? '14px 0' : '12px 0',
-                background: plan.ctaStyle === 'primary' ? 'linear-gradient(90deg, #a07820, #c4960a)' : 'transparent',
-                border: plan.ctaStyle === 'primary' ? 'none' : `0.5px solid ${plan.id === 'free' ? '#1c1c2a' : 'rgba(160,120,32,.3)'}`,
-                borderRadius: 10,
-                color: plan.ctaStyle === 'primary' ? '#fff' : plan.id === 'free' ? '#3e3a34' : '#c4960a',
-                fontSize: isHot ? 13 : 12,
-                fontWeight: isHot ? 600 : 500,
-                fontFamily: "'DM Sans', sans-serif",
-                cursor: 'pointer',
-              }}>
-                {plan.cta}
+              <button
+                onClick={() => handleSubscribe(plan.id, plan.name)}
+                disabled={loading}
+                style={{
+                  width: '100%', marginTop: 20,
+                  padding: isHot ? '14px 0' : '12px 0',
+                  background: plan.ctaStyle === 'primary' ? 'linear-gradient(90deg, #a07820, #c4960a)' : 'transparent',
+                  border: plan.ctaStyle === 'primary' ? 'none' : `0.5px solid ${plan.id === 'free' ? '#1c1c2a' : 'rgba(160,120,32,.3)'}`,
+                  borderRadius: 10,
+                  color: plan.ctaStyle === 'primary' ? '#fff' : plan.id === 'free' ? '#3e3a34' : '#c4960a',
+                  fontSize: isHot ? 13 : 12,
+                  fontWeight: isHot ? 600 : 500,
+                  fontFamily: "'DM Sans', sans-serif",
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                }}
+              >
+                {loading ? 'Chargement...' : plan.cta}
               </button>
               {plan.showSub && (
                 <div style={{ textAlign: 'center', marginTop: 7, fontSize: 10, color: '#3e3a34' }}>
