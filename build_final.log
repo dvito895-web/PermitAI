@@ -1,0 +1,17 @@
+yarn run v1.22.22
+$ next build
+  ▲ Next.js 14.2.3
+  - Environments: .env
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./app/api/[[...path]]/route.js
+Module not found: Can't resolve '@/lib/db'
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+> Build failed because of webpack errors
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

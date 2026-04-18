@@ -1,0 +1,46 @@
+
+╔════════════════════════════════════════════════════════════╗
+║     PermitAI - Générateur PLU Production v4.0             ║
+║     Génération de 36 000 PLU selon Code urbanisme         ║
+╚════════════════════════════════════════════════════════════╝
+    
+🔌 Connexion à PostgreSQL...
+✅ Connecté
+
+
+📍 Récupération de toutes les communes françaises...
+✅ 34969 communes récupérées
+
+🚀 Génération des PLU pour 34969 communes...
+
+======================================================================
+
+======================================================================
+📊 PROGRESSION : 12000/34969 communes traitées
+   ✅ Générées : 36
+   ⏭️  Déjà indexées : 11964
+   📦 Chunks totaux : 360
+======================================================================
+
+  [100/34969] Monclar (32264) → 10 chunks (rural)
+  [200/34969] Saint-Avit-Frandat (32364) → 10 chunks (rural)
+  [300/34969] Villefranche-d'Astarac (32465) → 10 chunks (rural)
+  [400/34969] Cartelègue (33101) → 10 chunks (rural)
+  [500/34969] Hourtin (33203) → 10 chunks (rural)
+  [600/34969] Noaillan (33307) → 10 chunks (rural)
+  [700/34969] Saint-Germain-de-la-Rivière (33414) → 10 chunks (rural)
+  [800/34969] Le Taillan-Médoc (33519) → 8 chunks (peri_urbain)
+  [900/34969] Le Caylar (34064) → 10 chunks (rural)
+  [1000/34969] Montbazin (34165) → 10 chunks (rural)
+
+======================================================================
+📊 PROGRESSION : 13000/34969 communes traitées
+   ✅ Générées : 1034
+   ⏭️  Déjà indexées : 11966
+   📦 Chunks totaux : 10167
+======================================================================
+
+  [1100/34969] Saint-Jean-de-Cuculles (34266) → 10 chunks (rural)
+  [1200/34969] Bléruais (35026) → 10 chunks (rural)
+  [1300/34969] Javené (35137) → 10 chunks (rural)
+  [1400/34969] Romagné (35243) → 10 chunks (rural)

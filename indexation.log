@@ -1,0 +1,10 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/app/scripts/generate_plu_production.py", line 9, in <module>
+    import aiohttp
+ModuleNotFoundError: No module named 'aiohttp'
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/app/scripts/generate_plu_production.py", line 10, in <module>
+    import asyncpg
+ModuleNotFoundError: No module named 'asyncpg'

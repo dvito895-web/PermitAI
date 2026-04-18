@@ -1,0 +1,37 @@
+
+╔════════════════════════════════════════════════════════════╗
+║     PermitAI - Générateur PLU Production v4.0             ║
+║     Génération de 36 000 PLU selon Code urbanisme         ║
+╚════════════════════════════════════════════════════════════╝
+    
+🔌 Connexion à PostgreSQL...
+✅ Connecté
+
+
+📍 Récupération de toutes les communes françaises...
+✅ 34969 communes récupérées
+
+🚀 Génération des PLU pour 34969 communes...
+
+======================================================================
+  [100/34969] Galéria (2B121) → 10 chunks (rural)
+  [200/34969] Rusio (2B264) → 10 chunks (rural)
+  [300/34969] Belvézet (30035) → 10 chunks (rural)
+
+======================================================================
+📊 PROGRESSION : 11000/34969 communes traitées
+   ✅ Générées : 392
+   ⏭️  Déjà indexées : 10608
+   📦 Chunks totaux : 3884
+======================================================================
+
+  [400/34969] Lanuéjols (30139) → 10 chunks (rural)
+  [500/34969] Saint-Christol-de-Rodières (30242) → 10 chunks (rural)
+  [600/34969] Vénéjan (30342) → 10 chunks (rural)
+  [700/34969] Bragayrac (31087) → 10 chunks (rural)
+  [800/34969] Fontenilles (31188) → 8 chunks (peri_urbain)
+  [900/34969] Lège (31290) → 10 chunks (rural)
+  [1000/34969] Mourvilles-Basses (31392) → 10 chunks (rural)
+  [1100/34969] Saint-Lary-Boujean (31493) → 10 chunks (rural)
+  [1200/34969] Aignan (32001) → 10 chunks (rural)
+  [1300/34969] Clermont-Savès (32105) → 10 chunks (rural)

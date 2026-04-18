@@ -1,0 +1,40 @@
+
+╔════════════════════════════════════════════════════════════╗
+║           PermitAI PLU Indexer v3.0                       ║
+║           Mode: FULL                                          ║
+║           Aucune IA utilisée - Texte brut uniquement       ║
+╚════════════════════════════════════════════════════════════╝
+    
+🔌 Connexion à la base de données...
+✅ Connecté à PostgreSQL
+
+
+🔍 Récupération de la liste des PLU depuis le Géoportail...
+
+  Type: PLU
+    ❌ Erreur page 1: Cannot connect to host www.geoportail-urbanisme.gouv.fr:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)')]
+
+  Type: PLUi
+    ❌ Erreur page 1: Cannot connect to host www.geoportail-urbanisme.gouv.fr:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)')]
+
+  Type: POS
+    ❌ Erreur page 1: Cannot connect to host www.geoportail-urbanisme.gouv.fr:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)')]
+
+  Type: CC
+    ❌ Erreur page 1: Cannot connect to host www.geoportail-urbanisme.gouv.fr:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)')]
+
+✅ Total récupéré: 0 documents PLU
+
+🚀 Début de l'indexation de 0 PLU
+
+======================================================================
+
+======================================================================
+✅ INDEXATION TERMINÉE
+======================================================================
+  Succès:        0
+  Erreurs:       0
+  Déjà indexés:  0
+  Total traité:  0
+======================================================================
+    

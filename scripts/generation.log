@@ -1,0 +1,16 @@
+
+╔════════════════════════════════════════════════════════════╗
+║     PermitAI - Générateur PLU Production v4.0             ║
+║     Génération de 36 000 PLU selon Code urbanisme         ║
+╚════════════════════════════════════════════════════════════╝
+    
+🔌 Connexion à PostgreSQL...
+✅ Connecté
+
+
+📍 Récupération de toutes les communes françaises...
+✅ 34969 communes récupérées
+
+🚀 Génération des PLU pour 34969 communes...
+
+======================================================================

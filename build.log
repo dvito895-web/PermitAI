@@ -1,0 +1,82 @@
+yarn run v1.22.22
+$ next build
+  ▲ Next.js 14.2.3
+  - Environments: .env
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./app/cerfa/page.js
+Module not found: Can't resolve '@/lib/texts'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/communes/[slug]/page.js
+Error: 
+  [31mx[0m You are attempting to export "generateMetadata" from a component marked with "use client", which is disallowed. Either remove the export, or the "use client" directive. Read more: https://
+  [31m|[0m nextjs.org/docs/getting-started/react-essentials#the-use-client-directive
+  [31m|[0m 
+  [31m|[0m 
+     ,-[[36;1;4m/app/app/communes/[slug]/page.js[0m:215:1]
+ [2m215[0m |   );
+ [2m216[0m | }
+ [2m217[0m | 
+ [2m218[0m | export async function generateMetadata({ params }) {
+     : [31;1m                      ^^^^^^^^^^^^^^^^[0m
+ [2m219[0m |   const commune = getCommune(params.slug);
+ [2m220[0m |   return {
+ [2m221[0m |     title: `Permis de construire à ${commune.name} (${commune.dept}) — Analyse PLU en 3 min | PermitAI`,
+     `----
+
+Import trace for requested module:
+./app/communes/[slug]/page.js
+
+./app/communes/page.js
+Error: 
+  [31mx[0m You are attempting to export "metadata" from a component marked with "use client", which is disallowed. Either remove the export, or the "use client" directive. Read more: https://nextjs.org/
+  [31m|[0m docs/getting-started/react-essentials#the-use-client-directive
+  [31m|[0m 
+  [31m|[0m 
+     ,-[[36;1;4m/app/app/communes/page.js[0m:171:1]
+ [2m171[0m |   );
+ [2m172[0m | }
+ [2m173[0m |  
+ [2m174[0m | export const metadata = {
+     : [31;1m             ^^^^^^^^[0m
+ [2m175[0m |   title: 'Permis de construire par commune — Analyse PLU France | PermitAI',
+ [2m176[0m |   description: 'Analysez le PLU de votre commune en 3 minutes. 36 000 communes de France indexées. CERFA auto-rempli. Dépôt en mairie inclus.',
+ [2m177[0m | };
+     `----
+
+Import trace for requested module:
+./app/communes/page.js
+
+./app/demo/page.js
+Error: 
+  [31mx[0m You are attempting to export "metadata" from a component marked with "use client", which is disallowed. Either remove the export, or the "use client" directive. Read more: https://nextjs.org/
+  [31m|[0m docs/getting-started/react-essentials#the-use-client-directive
+  [31m|[0m 
+  [31m|[0m 
+     ,-[[36;1;4m/app/app/demo/page.js[0m:480:1]
+ [2m480[0m |   );
+ [2m481[0m | }
+ [2m482[0m | 
+ [2m483[0m | export const metadata = {
+     : [31;1m             ^^^^^^^^[0m
+ [2m484[0m |   title: 'Démo gratuite — Analyse PLU en 3 minutes | PermitAI',
+ [2m485[0m |   description: 'Testez PermitAI sur votre adresse. Résultat immédiat. 34 970 communes françaises indexées. Sans inscription.',
+ [2m486[0m |   openGraph: {
+     `----
+
+Import trace for requested module:
+./app/demo/page.js
+
+./app/depot/page.js
+Module not found: Can't resolve '@/lib/texts'
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+> Build failed because of webpack errors
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
