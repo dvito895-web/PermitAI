@@ -570,6 +570,47 @@ Analyse ce projet par rapport aux règles PLU et réponds UNIQUEMENT en JSON val
       return handleCORS(NextResponse.json({ message: 'Webhook processed successfully' }));
     }
 
+    // CERFA endpoints
+    if (route === '/cerfa/all' && method === 'GET') {
+      try {
+        const cerfas = await prisma.cerfaFormulaire.findMany({
+          orderBy: { numero: 'asc' }
+        });
+        return handleCORS(NextResponse.json(cerfas));
+      } catch (error) {
+        console.error('CERFA list error:', error);
+        return handleCORS(NextResponse.json(
+          { error: 'Internal server error' },
+          { status: 500 }
+        ));
+      }
+    }
+
+    // CERFA specific form by numero
+    if (route.startsWith('/cerfa/') && route !== '/cerfa/all' && method === 'GET') {
+      try {
+        const numero = route.split('/')[2];
+        const cerfa = await prisma.cerfaFormulaire.findUnique({
+          where: { numero }
+        });
+
+        if (!cerfa) {
+          return handleCORS(NextResponse.json(
+            { error: 'CERFA not found' },
+            { status: 404 }
+          ));
+        }
+
+        return handleCORS(NextResponse.json(cerfa));
+      } catch (error) {
+        console.error('CERFA API error:', error);
+        return handleCORS(NextResponse.json(
+          { error: 'Internal server error' },
+          { status: 500 }
+        ));
+      }
+    }
+
     // Route not found
     return handleCORS(NextResponse.json(
       { error: `Route ${route} not found` },
