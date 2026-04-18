@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, FileText, Download, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import texts from '@/lib/texts';
+import texts from '@/lib/texts.ts';
 
 export default function CerfaPage() {
   const [step, setStep] = useState(1);

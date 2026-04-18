@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, Send, Mail, MapPin, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
-import texts from '@/lib/texts';
+import texts from '@/lib/texts.ts';
 
 export default function DepotPage() {
   const [codeInsee, setCodeInsee] = useState('');

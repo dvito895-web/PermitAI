@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import prisma from '@/lib/db';
+import prisma from '@/lib/db.js';
 import Stripe from 'stripe';
 
 // Initialize Anthropic client
