@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, Bell, FileText, Clock, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
-import texts from '@/lib/texts';
+import texts from '@/lib/texts.ts';
 
 export default function SuiviPage() {
   const [filter, setFilter] = useState('all');

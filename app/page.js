@@ -1,4 +1,3 @@
-import LiveCounter from '@/components/LiveCounter';
 'use client';
 
 import { useState } from 'react';
@@ -323,7 +322,6 @@ export default function LandingPage() {
               remplit vos CERFA officiels et dépose votre dossier directement
               en mairie. Résultat garanti en 3 minutes.
               <h1>Analysez votre PLU en 3 minutes</h1>
-              <LiveCounter />
             </p>
             <div style={{ display: 'flex', gap: 9, marginBottom: 26 }} className="animate-fade-in-up animate-delay-3">
               <Link href="/analyse">
