@@ -124,3 +124,19 @@ model Alerte {
   @@index([userId])
   @@map("alertes")
 }
+
+model CerfaFormulaire {
+  id               Int      @id @default(autoincrement())
+  numero           String   @unique @db.VarChar(10)
+  nom              String   @db.Text
+  slug             String   @unique @db.VarChar(100)
+  description      String?  @db.Text
+  categorie        String?  @db.VarChar(50)
+  champsRequis     Json?    @map("champs_requis")
+  piecesJointes    Json?    @map("pieces_jointes")
+  delaiInstruction String?  @map("delai_instruction") @db.VarChar(50)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("cerfa_formulaires")
+}
+
