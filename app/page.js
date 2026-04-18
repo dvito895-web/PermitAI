@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SignInButton, SignUpButton, useUser } from '@clerk/nextjs';
 import { ArrowRight, MapPin, FileText, Upload, Bell, Shield, TrendingUp, Search, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
@@ -243,6 +243,7 @@ export default function LandingPage() {
   const [demoDescription, setDemoDescription] = useState('');
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState(null);
+  const [liveCount, setLiveCount] = useState(4847);
 
   const handleDemoAnalysis = async (e) => {
     e.preventDefault();
@@ -269,6 +270,14 @@ export default function LandingPage() {
       setDemoLoading(false);
     }
   };
+
+  // Compteur live : incrémente toutes les 8 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveCount(prev => prev + 1);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: '#06060e', fontFamily: "'DM Sans', sans-serif" }}>
@@ -399,6 +408,22 @@ export default function LandingPage() {
               <div className="stat-label">{s.label}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── COMPTEUR LIVE ── */}
+      <div style={{ background: 'linear-gradient(135deg, #0e0e1a 0%, #06060e 100%)', padding: '32px 52px', borderBottom: '0.5px solid #1c1c2a' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+            <div className="pulse-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 0 4px rgba(74,222,128,.15)' }} />
+            <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.6px' }}>En temps réel</span>
+          </div>
+          <div style={{ fontFamily: "'Fraunces', serif", fontSize: 48, fontWeight: 600, color: '#e8b420', letterSpacing: '-1.2px', marginBottom: 6 }}>
+            {liveCount.toLocaleString('fr-FR')}
+          </div>
+          <div style={{ fontSize: 14, color: '#8d887f', fontWeight: 400 }}>
+            analyses PLU réalisées depuis le lancement
+          </div>
         </div>
       </div>
 
