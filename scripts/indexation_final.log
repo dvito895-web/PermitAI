@@ -1,0 +1,51 @@
+
+╔════════════════════════════════════════════════════════════╗
+║     PermitAI - Générateur PLU Production v4.0             ║
+║     Génération de 36 000 PLU selon Code urbanisme         ║
+╚════════════════════════════════════════════════════════════╝
+    
+🔌 Connexion à PostgreSQL...
+✅ Connecté
+
+
+📍 Récupération de toutes les communes françaises...
+✅ 34969 communes récupérées
+
+🚀 Génération des PLU pour 34969 communes...
+
+======================================================================
+  [100/34969] Issoudun (36088) → 8 chunks (peri_urbain)
+  [200/34969] Sainte-Fauste (36190) → 10 chunks (rural)
+  [300/34969] Cinq-Mars-la-Pile (37077) → 10 chunks (rural)
+  [400/34969] Gresse-en-Vercors (38186) → 10 chunks (rural)
+  [500/34969] Annoire (39011) → 10 chunks (rural)
+  [600/34969] Port-Lesney (39439) → 10 chunks (rural)
+  [700/34969] Saint-Aubin (40249) → 10 chunks (rural)
+  [800/34969] Bellegarde-en-Forez (42013) → 10 chunks (rural)
+  [900/34969] Chambezon (43050) → 10 chunks (rural)
+  [1000/34969] Saint-Hilaire-de-Chaléons (44164) → 10 chunks (rural)
+  [1100/34969] Traînou (45327) → 10 chunks (rural)
+  [1200/34969] Bon-Encontre (47032) → 8 chunks (peri_urbain)
+  [1300/34969] Marchastel (48091) → 10 chunks (rural)
+  [1400/34969] Couville (50149) → 10 chunks (rural)
+
+======================================================================
+📊 PROGRESSION : 18000/34969 communes traitées
+   ✅ Générées : 1469
+   ⏭️  Déjà indexées : 16531
+   📦 Chunks totaux : 14519
+======================================================================
+
+  [1500/34969] Argers (51015) → 10 chunks (rural)
+  [1600/34969] Nuisement-sur-Coole (51409) → 10 chunks (rural)
+  [1700/34969] Dampierre (52163) → 10 chunks (rural)
+  [1800/34969] Congrier (53073) → 10 chunks (rural)
+  [1900/34969] Essey-et-Maizerais (54182) → 10 chunks (rural)
+  [2000/34969] Varangéville (54549) → 10 chunks (rural)
+  [2100/34969] Val-d'Ornain (55366) → 10 chunks (rural)
+  [2200/34969] Pont-Scorff (56179) → 10 chunks (rural)
+  [2300/34969] Haspelschiedt (57301) → 10 chunks (rural)
+  [2400/34969] Uckange (57683) → 8 chunks (peri_urbain)
+  [2500/34969] Urzy (58300) → 10 chunks (rural)
+  [2600/34969] Lourches (59361) → 10 chunks (rural)
+  [2700/34969] Béthisy-Saint-Martin (60067) → 10 chunks (rural)
