@@ -30,7 +30,7 @@ const PLANS = [
     annualTotal: 0,    annualOrig: 0,   annualMonthly: 0,  annualPct: 0,
     bonus: null,
     showSub: false,
-    features: ['1 analyse PLU par mois', '2 règles visibles sur 15+', 'Résumé en 1 phrase', 'IA Standard'],
+    features: ['1 analyse PLU / mois', '2 règles visibles sur 15+', 'Résumé en 1 phrase', 'IA Standard'],
     locked: ['CERFA + PDF officiel', 'Dépôt en mairie', 'Alertes PLU'],
     cta: 'Commencer gratuitement',
     ctaStyle: 'ghost',
@@ -40,11 +40,11 @@ const PLANS = [
     id: 'starter',
     name: 'Starter',
     segment: 'Pour les particuliers',
-    monthlyPrice: 29,  monthlyOrig: 49,
-    annualTotal: 228,  annualOrig: 348,  annualMonthly: 19, annualPct: 34,
-    bonus: '1 refus évité = 86 mois d\'abonnement',
+    monthlyPrice: 49,   monthlyOrig: 79,
+    annualTotal: 411,   annualOrig: 588,  annualMonthly: 34, annualPct: 30,
+    bonus: '1 refus évité = 5 mois d\'abonnement',
     showSub: true,
-    features: ['⭐ IA Premium', '8 analyses PLU / mois', 'Toutes les règles PLU applicables', '3 CERFA + PDF officiel', '2 dépôts mairie / mois', 'Notice descriptive IA', 'Alertes délais légaux', 'Suivi 3 dossiers · Support 48h'],
+    features: ['⭐ IA Premium', '10 analyses PLU / mois', 'Toutes les règles PLU applicables', '3 CERFA + PDF officiel', '2 dépôts mairie / mois', 'Notice descriptive IA', 'Alertes délais légaux', 'Support 48h'],
     locked: [],
     cta: 'Choisir Starter',
     ctaStyle: 'outline',
@@ -52,13 +52,13 @@ const PLANS = [
   },
   {
     id: 'pro',
-    name: 'Pro Immobilier',
-    segment: 'Pour les agents et constructeurs',
-    monthlyPrice: 89,  monthlyOrig: 129,
-    annualTotal: 588,  annualOrig: 1068, annualMonthly: 49, annualPct: 45,
-    bonus: '3 analyses / jour · ROI dès le 1er mois',
+    name: 'Pro',
+    segment: 'Pour agents immo & constructeurs',
+    monthlyPrice: 149,  monthlyOrig: 229,
+    annualTotal: 1252,  annualOrig: 1788, annualMonthly: 104, annualPct: 30,
+    bonus: '5 utilisateurs · API · ROI immédiat',
     showSub: true,
-    features: ['⭐ IA Premium', 'Analyses PLU illimitées', 'Les 13 CERFA illimités + PDF', 'Dépôts illimités PLAT\'AU + LRAR', '5 utilisateurs inclus', 'Extension Chrome agents immo', 'Alertes révisions PLU communes', 'Export historique · Support 4h'],
+    features: ['⭐ IA Premium', 'Analyses PLU illimitées', '13 CERFA illimités + PDF', 'Dépôts illimités PLAT\'AU + LRAR', '5 utilisateurs inclus', 'API REST 1 000 req / mois', 'Alertes révisions PLU', 'Support prioritaire 4h'],
     locked: [],
     cta: 'Choisir Pro',
     ctaStyle: 'primary',
@@ -67,16 +67,31 @@ const PLANS = [
   {
     id: 'cabinet',
     name: 'Cabinet',
-    segment: 'Pour les cabinets et promoteurs',
-    monthlyPrice: 199, monthlyOrig: 299,
-    annualTotal: 1188, annualOrig: 2388, annualMonthly: 99, annualPct: 50,
-    bonus: '< 1h facturée à un client · Rentable J+1',
+    segment: 'Pour cabinets & promoteurs',
+    monthlyPrice: 499,  monthlyOrig: 799,
+    annualTotal: 4191,  annualOrig: 5988, annualMonthly: 349, annualPct: 30,
+    bonus: 'Tout illimité · SLA · Support dédié',
     showSub: true,
-    features: ['⭐ IA Premium', 'Tout Pro inclus', 'Utilisateurs illimités', 'Multi-clients & projets', 'API 2 000 req / mois', 'Account manager dédié', 'Export comptable CSV', 'Support dédié < 2h'],
+    features: ['⭐ IA Premium', 'Tout Pro inclus', 'Utilisateurs illimités', 'API illimitée', 'Multi-clients & projets', 'Account manager dédié', 'SLA 99,9%', 'Support dédié < 2h'],
     locked: [],
-    cta: 'Nous contacter',
+    cta: 'Choisir Cabinet',
     ctaStyle: 'outline',
     popular: false,
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    segment: 'White-label · Sur mesure',
+    monthlyPrice: null, monthlyOrig: null,
+    annualTotal: null,  annualOrig: null, annualMonthly: null, annualPct: 0,
+    bonus: 'White-label · Formation · API dédiée',
+    showSub: false,
+    features: ['Tout Cabinet inclus', 'Solution white-label', 'Domaine personnalisé', 'API dédiée prioritaire', 'Formation équipe', 'SSO SAML', 'Onboarding sur mesure', 'Account manager senior'],
+    locked: [],
+    cta: 'Demander un devis',
+    ctaStyle: 'outline',
+    popular: false,
+    customPrice: 'Sur devis',
   },
 ];
 
@@ -155,8 +170,8 @@ export default function TarifsPage() {
       return;
     }
 
-    if (planId === 'cabinet') {
-      window.location.href = 'mailto:contact@permitai.eu?subject=Demande plan Cabinet';
+    if (planId === 'cabinet' || planId === 'enterprise') {
+      router.push('/enterprise');
       return;
     }
 
@@ -254,19 +269,19 @@ export default function TarifsPage() {
             </button>
             <button onClick={() => setBilling('annual')} style={{ padding: '9px 24px', background: isAnnual ? '#14141e' : 'transparent', color: isAnnual ? '#f2efe9' : '#5a5650', borderRadius: 7, fontSize: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: isAnnual ? 500 : 400, fontFamily: "'DM Sans', sans-serif" }}>
               Annuel
-              <span style={{ background: '#a07820', color: '#fff', fontSize: 9, padding: '2px 8px', borderRadius: 20, fontWeight: 700, letterSpacing: '.3px' }}>Jusqu'à -50%</span>
+              <span style={{ background: '#a07820', color: '#fff', fontSize: 9, padding: '2px 8px', borderRadius: 20, fontWeight: 700, letterSpacing: '.3px' }}>-30%</span>
             </button>
           </div>
           {isAnnual && (
             <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 44 }}>
-              Starter 19€/mois · Pro 49€/mois · Cabinet 99€/mois — facturés annuellement
+              Économisez 30% sur tous les plans avec la facturation annuelle
             </div>
           )}
         </div>
       </div>
 
       {/* ── PLANS ── */}
-      <div style={{ padding: '0 52px 52px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: '0 36px 52px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, maxWidth: 1280, margin: '0 auto' }}>
         {PLANS.map((plan) => {
           const price  = isAnnual ? plan.annualTotal    : plan.monthlyPrice;
           const orig   = isAnnual ? plan.annualOrig     : plan.monthlyOrig;
@@ -303,7 +318,12 @@ export default function TarifsPage() {
               <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 18 }}>{plan.segment}</div>
 
               {/* PRIX */}
-              {plan.id === 'free' ? (
+              {plan.customPrice ? (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: '#e8b420', fontWeight: 500, letterSpacing: -1, lineHeight: 1, marginBottom: 4 }}>{plan.customPrice}</div>
+                  <div style={{ fontSize: 11, color: '#5a5650' }}>Tarif négocié selon volume</div>
+                </div>
+              ) : plan.id === 'free' ? (
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ fontFamily: "'Fraunces', serif", fontSize: 48, color: '#f2efe9', fontWeight: 500, letterSpacing: -1.4, lineHeight: 1, marginBottom: 3 }}>0€</div>
                   <div style={{ fontSize: 11, color: '#3e3a34' }}>Pour découvrir sans engagement</div>

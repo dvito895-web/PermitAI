@@ -20,8 +20,14 @@ export async function generateMetadata({ params }) {
   }
 
   return {
-    title: `PLU ${commune.communeNom} - Analyse Urbanisme | PermitAI`,
-    description: `Analysez le Plan Local d'Urbanisme de ${commune.communeNom}. ${commune.nbChunks} règles indexées, analyse en 3 minutes.`,
+    title: `PLU ${commune.communeNom} — Analyse permis de construire | PermitAI`,
+    description: `Analysez le Plan Local d'Urbanisme de ${commune.communeNom} en 3 minutes. ${commune.nbChunks || 0} règles indexées. Conformité, hauteur, emprise au sol vérifiées par IA.`,
+    keywords: [`PLU ${commune.communeNom}`, `permis de construire ${commune.communeNom}`, `urbanisme ${commune.communeNom}`, 'analyse PLU', 'CERFA'],
+    openGraph: {
+      title: `PLU ${commune.communeNom} — PermitAI`,
+      description: `Analyse PLU instantanée pour ${commune.communeNom}. ${commune.nbChunks || 0} règles indexées.`,
+      type: 'article',
+    },
   };
 }
 
@@ -43,8 +49,23 @@ export default async function CommunePage({ params }) {
     where: { communeCode: commune.communeCode },
   });
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: `Service urbanisme ${commune.communeNom}`,
+    description: `Analyse du PLU de ${commune.communeNom} et accompagnement permis de construire`,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: commune.communeNom,
+      addressCountry: 'FR',
+    },
+    areaServed: commune.communeNom,
+    url: `https://permitai.eu/communes/${params.slug}`,
+  };
+
   return (
     <div className="min-h-screen bg-[#06060e]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <nav className="nav-premium">
         <div className="container mx-auto px-6 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
@@ -109,13 +130,24 @@ export default async function CommunePage({ params }) {
             </div>
           </div>
 
+          <div className="card-premium mb-8">
+            <h2 className="text-[20px] font-medium text-[#f0ede8] mb-4">Comment déposer un permis à {commune.communeNom} ?</h2>
+            <ol className="ml-6 space-y-3 text-[14px] text-[#8a857d] list-decimal">
+              <li><strong className="text-[#f0ede8]">Analysez votre PLU</strong> avec PermitAI : vérification automatique de la conformité.</li>
+              <li><strong className="text-[#f0ede8]">Remplissez le CERFA approprié</strong> (13406 pour permis de construire, 13703 pour DP).</li>
+              <li><strong className="text-[#f0ede8]">Joignez les pièces obligatoires</strong> : plans, photos, notice descriptive.</li>
+              <li><strong className="text-[#f0ede8]">Déposez en mairie</strong> : PLAT'AU si {commune.communeNom} est raccordée, sinon LRAR La Poste.</li>
+              <li><strong className="text-[#f0ede8]">Suivez l'instruction</strong> : 1 mois (DP) ou 2-3 mois (PC) selon la zone.</li>
+            </ol>
+          </div>
+
           <div className="card-premium bg-gradient-to-br from-[#14141f] to-[#0a0a14]">
             <h3 className="text-[20px] font-medium mb-4 text-[#f0ede8]">Analysez votre projet à {commune.communeNom}</h3>
             <p className="text-[14px] text-[#8a857d] mb-6">
               Entrez l'adresse exacte de votre terrain pour obtenir une analyse complète du PLU applicable, avec citations des articles officiels.
             </p>
-            <Link href="/analyse">
-              <button className="btn-primary">Analyser mon projet à {commune.communeNom}</button>
+            <Link href={`/analyse?adresse=${encodeURIComponent(commune.communeNom)}`}>
+              <button className="btn-primary">Analyser mon terrain à {commune.communeNom}</button>
             </Link>
           </div>
         </div>

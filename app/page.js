@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SignInButton, SignUpButton, useUser } from '@clerk/nextjs';
 import { ArrowRight, MapPin, FileText, Upload, Bell, Shield, TrendingUp, Search, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
-import AddressAutocomplete from '../components/AddressAutocomplete';
+import { useRouter } from 'next/navigation';
+import AddressInput from '../components/AddressInput';
 
 function LogoMark() {
   return (
@@ -240,11 +241,22 @@ const PROCESS = [
 
 export default function LandingPage() {
   const { isSignedIn } = useUser();
+  const router = useRouter();
+  const [heroAddress, setHeroAddress] = useState('');
   const [demoAddress, setDemoAddress] = useState('');
   const [demoDescription, setDemoDescription] = useState('');
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState(null);
   const [liveCount, setLiveCount] = useState(4847);
+
+  const handleHeroSubmit = (e) => {
+    e.preventDefault();
+    if (heroAddress?.trim()) {
+      router.push(`/analyse?adresse=${encodeURIComponent(heroAddress.trim())}`);
+    } else {
+      router.push('/analyse');
+    }
+  };
 
   const handleDemoAnalysis = async (e) => {
     e.preventDefault();
@@ -293,6 +305,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', gap: 2 }}>
             <Link href="/analyse" className="nav-link">Analyse PLU</Link>
             <Link href="/cerfa" className="nav-link">CERFA</Link>
+            <Link href="/calculateurs" className="nav-link">Calculateurs</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
             <Link href="/tarifs" className="nav-link">Tarifs</Link>
           </div>
@@ -333,14 +346,19 @@ export default function LandingPage() {
               en mairie. Résultat garanti en 3 minutes.
               <h1>Analysez votre PLU en 3 minutes</h1>
             </p>
-            <div style={{ display: 'flex', gap: 9, marginBottom: 26 }} className="animate-fade-in-up animate-delay-3">
-              <Link href="/analyse">
-                <button className="btn-primary">
-                  Analyser mon terrain gratuitement
-                  <div className="btn-arrow">→</div>
-                </button>
+            <form onSubmit={handleHeroSubmit} style={{ display: 'flex', gap: 9, marginBottom: 16, alignItems: 'stretch' }} className="animate-fade-in-up animate-delay-3">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <AddressInput value={heroAddress} onChange={setHeroAddress} placeholder="Tapez l'adresse de votre terrain…" />
+              </div>
+              <button type="submit" className="btn-primary" style={{ flexShrink: 0 }}>
+                Analyser
+                <div className="btn-arrow">→</div>
+              </button>
+            </form>
+            <div style={{ display: 'flex', gap: 9, marginBottom: 26 }}>
+              <Link href="/demo">
+                <button type="button" className="btn-secondary">Voir une démo live</button>
               </Link>
-              <button className="btn-secondary">Voir une démo live</button>
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               {['Analyse en 3 min', '13 CERFA couverts', 'Dépôt mairie inclus', 'Données officielles'].map(t => (
@@ -458,7 +476,7 @@ export default function LandingPage() {
                   <label style={{ display: 'block', fontSize: 12, color: '#8d887f', marginBottom: 8, fontWeight: 500 }}>
                     Adresse du projet *
                   </label>
-                  <AddressAutocomplete
+                  <AddressInput
                     value={demoAddress}
                     onChange={setDemoAddress}
                     placeholder="Ex: 10 rue de la République, 75001 Paris"
@@ -714,7 +732,7 @@ export default function LandingPage() {
 
       {/* ── FOOTER ── */}
       <footer style={{ borderTop: '0.5px solid #1c1c2a', padding: '52px', background: '#06060e' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, marginBottom: 40 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr', gap: 36, marginBottom: 40 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <LogoMark />
@@ -725,9 +743,10 @@ export default function LandingPage() {
             </p>
           </div>
           {[
-            { title: 'Produit', links: [['Analyse PLU', '/analyse'], ['Formulaires CERFA', '/cerfa'], ['Dépôt en mairie', '/depot'], ['Suivi dossiers', '/suivi'], ['Tarifs', '/tarifs']] },
-            { title: 'Ressources', links: [['Documentation', '/docs'], ['Blog urbanisme', '/blog'], ['Support', '/support'], ['API', '/api']] },
-            { title: 'Légal', links: [['Mentions légales', '/mentions-legales'], ['CGU', '/cgu'], ['Confidentialité', '/confidentialite'], ['Cookies', '/cookies']] },
+            { title: 'Produit',    links: [['Analyse PLU', '/analyse'], ['CERFA', '/cerfa'], ['Calculateurs', '/calculateurs'], ['Démo', '/demo'], ['Tarifs', '/tarifs']] },
+            { title: 'Métiers',    links: [['Agents immo', '/agent-immobilier'], ['Architectes', '/architecte'], ['Promoteurs', '/promoteur'], ['Particuliers', '/particulier'], ['Enterprise', '/enterprise']] },
+            { title: 'Ressources', links: [['Blog', '/blog'], ['Documentation', '/documentation'], ['Support', '/support'], ['API', '/api-docs'], ['Parrainage', '/parrainage']] },
+            { title: 'Légal',      links: [['Mentions légales', '/mentions-legales'], ['Confidentialité', '/politique-confidentialite'], ['Cookies', '/cookies'], ['CGU', '/cgu']] },
           ].map((col, i) => (
             <div key={i}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', color: '#3e3a34', fontWeight: 500, marginBottom: 14 }}>{col.title}</div>
@@ -739,10 +758,12 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-        <div style={{ borderTop: '0.5px solid #1c1c2a', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ fontSize: 11, color: '#3e3a34' }}>© 2025 PermitAI · Tous droits réservés</p>
-          <p style={{ fontSize: 11, color: '#3e3a34' }}>Données Géoportail Urbanisme · Officielles · France</p>
-          <p style={{ fontSize: 11, color: '#3e3a34' }}>contact@permitai.eu</p>
+        <div style={{ borderTop: '0.5px solid #1c1c2a', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1200, margin: '0 auto' }}>
+          <p style={{ fontSize: 11, color: '#3e3a34' }}>© 2025 PermitAI · contact@permitai.eu</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
+            <span style={{ fontSize: 11, color: '#3e3a34' }}>Systèmes opérationnels</span>
+          </div>
         </div>
       </footer>
     </div>

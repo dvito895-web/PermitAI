@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
 import { MapPin, Search, ArrowRight, TrendingUp, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
-import AddressAutocomplete from '../../components/AddressAutocomplete';
+import AddressInput from '../../components/AddressInput';
 
 function LogoMark() {
   return (
@@ -48,8 +49,17 @@ const VERDICT_CONFIG = {
   },
 };
 
-export default function AnalysePage() {
+export default function AnalysePageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#06060e' }} />}>
+      <AnalysePage />
+    </Suspense>
+  );
+}
+
+function AnalysePage() {
   const { isSignedIn } = useUser();
+  const searchParams = useSearchParams();
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
   const [projectType, setProjectType] = useState('');
@@ -57,6 +67,12 @@ export default function AnalysePage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+
+  // Pre-fill from ?adresse= query param
+  useEffect(() => {
+    const a = searchParams?.get('adresse');
+    if (a) setAddress(a);
+  }, [searchParams]);
 
   const handleAnalyze = async () => {
     if (!address || !description) return;
@@ -125,7 +141,7 @@ export default function AnalysePage() {
 
             <label className="input-label" style={{ display: 'block', fontSize: 10, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.3px', marginBottom: 5, fontWeight: 500 }}>Adresse du terrain *</label>
             <div style={{ marginBottom: 13 }}>
-              <AddressAutocomplete
+              <AddressInput
                 value={address}
                 onChange={setAddress}
                 placeholder="47 avenue Victor Hugo, 69003 Lyon"
