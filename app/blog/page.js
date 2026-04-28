@@ -8,6 +8,33 @@ export const metadata = {
 
 const ARTICLES = [
   {
+    slug: 'permis-construire-extension-maison',
+    title: 'Permis de construire extension maison : guide complet 2025',
+    excerpt: 'Tout savoir sur l\'extension de maison : seuils CERFA, surface plancher, recours à un architecte, délais d\'instruction.',
+    date: '2025-06-12',
+    readTime: '10 min',
+    category: 'Guide',
+    image: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80',
+  },
+  {
+    slug: 'plu-par-commune-france',
+    title: 'Comprendre les PLU par commune en France : 36 000 documents',
+    excerpt: 'Comment les PLU varient d\'une commune à l\'autre, où les consulter, comment lire un règlement de zone.',
+    date: '2025-06-08',
+    readTime: '9 min',
+    category: 'Guide PLU',
+    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80',
+  },
+  {
+    slug: 'agent-immobilier-plu-compromis',
+    title: 'Agent immobilier : vérifier le PLU avant chaque compromis',
+    excerpt: 'Pourquoi tout agent immo doit vérifier le PLU avant signature : sécurisation des transactions et préservation des commissions.',
+    date: '2025-06-05',
+    readTime: '7 min',
+    category: 'Pro',
+    image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80',
+  },
+  {
     slug: 'comment-lire-un-plu',
     title: 'Comment lire et comprendre un Plan Local d\'Urbanisme (PLU)',
     excerpt: 'Décryptage complet des zones, articles et règles d\'un PLU. Guide pratique pour les particuliers et professionnels.',
@@ -42,6 +69,15 @@ const ARTICLES = [
     readTime: '7 min',
     category: 'Démarches',
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80',
+  },
+  {
+    slug: 'refus-permis-construire-recours',
+    title: 'Refus de permis de construire : recours et solutions 2025',
+    excerpt: 'Recours gracieux, recours contentieux, délais légaux. Que faire après un refus de permis pour maximiser vos chances.',
+    date: '2024-12-15',
+    readTime: '8 min',
+    category: 'Recours',
+    image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&q=80',
   },
   {
     slug: 'refus-permis-construire-que-faire',

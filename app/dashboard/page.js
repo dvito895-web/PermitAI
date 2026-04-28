@@ -116,6 +116,49 @@ export default function DashboardPage() {
             </p>
           </div>
 
+          {/* UPSELL BANNER */}
+          <div style={{
+            background: 'rgba(160,120,32,.08)',
+            border: '0.5px solid rgba(160,120,32,.2)',
+            borderRadius: 12,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            marginBottom: 28,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <Sparkles size={20} color="#e8b420" />
+              <div>
+                <div style={{ fontSize: 13, color: '#f0ede8', fontWeight: 500, marginBottom: 2 }}>
+                  8 / 10 analyses utilisées ce mois
+                </div>
+                <div style={{ fontSize: 11, color: '#8a857d' }}>
+                  Passez à Pro pour des analyses illimitées + API + 5 utilisateurs
+                </div>
+              </div>
+            </div>
+            <Link href="/tarifs">
+              <button style={{
+                padding: '10px 20px',
+                background: 'linear-gradient(90deg, #a07820, #c4960a)',
+                border: 'none',
+                borderRadius: 8,
+                color: '#fff',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}>
+                Passer à Pro <ArrowRight size={14} />
+              </button>
+            </Link>
+          </div>
+
           {/* SECTION DASHBOARD */}
           {activeSection === 'dashboard' && (
             <div>

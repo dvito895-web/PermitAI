@@ -329,6 +329,191 @@ PermitAI analyse le PLU **avant le dépôt** :
 Évitez 6 mois de retard et 3 000€ de frais.
     `,
   },
+  'permis-construire-extension-maison': {
+    title: 'Permis de construire extension maison : guide complet 2025',
+    date: '2025-06-12',
+    readTime: '10 min',
+    category: 'Guide',
+    image: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1200&q=80',
+    content: `
+Vous projetez d'agrandir votre maison ? Voici tout ce qu'il faut savoir avant de commencer.
+
+## Quelles autorisations selon la surface ?
+
+La nature de l'autorisation dépend de la **surface plancher** créée :
+
+- **≤ 5 m²** : aucune formalité
+- **5 à 20 m²** : déclaration préalable (DP)
+- **20 à 40 m²** en zone urbaine d'un PLU : déclaration préalable
+- **> 40 m² (PLU) ou > 20 m² (hors PLU)** : permis de construire (CERFA 13406)
+- **> 150 m² total après extension** : architecte obligatoire
+
+## Les CERFA à connaître
+
+- **CERFA 13703** : Déclaration préalable de travaux
+- **CERFA 13406** : Permis de construire pour une maison individuelle
+
+## Délais d'instruction
+
+- DP : 1 mois
+- Permis de construire : 2 à 3 mois selon la zone
+
+## Erreurs fréquentes
+
+- Oublier de vérifier l'**emprise au sol** maximale du PLU
+- Ne pas respecter les **distances aux limites séparatives**
+- Sous-estimer la **hauteur autorisée** au faîtage
+- Négliger l'**aspect extérieur** (matériaux, couleurs)
+
+## Coût d'un projet d'extension
+
+- Construction : 1 500 à 2 500 €/m²
+- Honoraires architecte (si > 150 m²) : 8 à 12 % du budget
+- Taxe d'aménagement : variable selon commune
+
+## Comment PermitAI vous aide
+
+PermitAI analyse votre PLU communal en 3 minutes, vérifie l'emprise au sol, la hauteur, les marges, et pré-remplit votre CERFA officiel.
+    `,
+  },
+  'plu-par-commune-france': {
+    title: 'Comprendre les PLU par commune en France : 36 000 documents',
+    date: '2025-06-08',
+    readTime: '9 min',
+    category: 'Guide PLU',
+    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=80',
+    content: `
+Chaque commune de France dispose d'un PLU (ou d'une carte communale, ou du RNU). Voici comment vous y retrouver.
+
+## Pourquoi les PLU varient
+
+Le PLU traduit la politique d'urbanisme **locale** : densité, hauteur, mixité, environnement. Une commune littorale n'aura pas les mêmes règles qu'une commune de montagne.
+
+## Où consulter le PLU de votre commune
+
+- **Mairie** : consultation publique en service urbanisme
+- **Géoportail Urbanisme** : géoportail-urbanisme.gouv.fr
+- **Site de la commune** : souvent en téléchargement PDF
+- **PermitAI** : recherche par adresse en 3 secondes
+
+## Lire le règlement de zone
+
+Chaque zone (UA, UB, UC, AU, A, N…) possède jusqu'à 14 articles :
+
+- Article 1-2 : occupations autorisées / interdites
+- Article 6 : implantation par rapport aux voies
+- Article 7 : implantation par rapport aux limites
+- Article 9 : emprise au sol
+- Article 10 : hauteur maximale
+- Article 11 : aspect extérieur
+- Article 12 : stationnement
+- Article 13 : espaces verts
+
+## PLUi : Plan Local d'Urbanisme intercommunal
+
+Depuis 2017, beaucoup d'EPCI ont fusionné les PLU communaux en un PLUi unique pour harmoniser les règles.
+
+## Cartes communales et RNU
+
+- **Carte communale** : ~7 000 communes, document simplifié
+- **RNU (Règlement National d'Urbanisme)** : pour les communes sans PLU ni carte communale
+
+## Comment PermitAI couvre 36 000 communes
+
+PermitAI indexe en continu les PLU publiés sur le Géoportail Urbanisme officiel. Données mises à jour quotidiennement.
+    `,
+  },
+  'agent-immobilier-plu-compromis': {
+    title: 'Agent immobilier : vérifier le PLU avant chaque compromis',
+    date: '2025-06-05',
+    readTime: '7 min',
+    category: 'Pro',
+    image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&q=80',
+    content: `
+30 % des compromis de vente avec projet de travaux comportent un risque PLU. Voici pourquoi vérifier devient essentiel.
+
+## Le risque pour l'agent immo
+
+Si l'acquéreur découvre **après signature** que son projet n'est pas conforme :
+
+- Rétractation possible (clause résolutoire)
+- Perte de la commission
+- Responsabilité professionnelle engagée
+- Réputation entachée
+
+## Les 5 vérifications PLU minimales
+
+1. **Constructibilité** du terrain
+2. **Hauteur maximale** autorisée
+3. **Emprise au sol** maximale
+4. **Distances aux limites**
+5. **Aspect extérieur** imposé
+
+## Le bon process
+
+- Avant le mandat : vérification rapide (3 min)
+- Avant les visites : préparer la fiche PLU
+- Avant le compromis : analyse complète + écrit
+- Clause suspensive : possibilité de mentionner la conformité PLU
+
+## Le ROI pour l'agent
+
+- 1 vente sauvée par an = 8 000 € de commission préservée
+- PermitAI Pro = 149 €/mois
+- ROI : 447 % la première année
+
+## Argument différenciateur
+
+Face à un acheteur qui hésite, présenter une **fiche PLU complète** rassure et accélère la décision. Beaucoup d'agences l'utilisent désormais comme outil de prospection.
+
+## L'extension Chrome PermitAI
+
+Vérifiez le PLU directement depuis SeLoger, Logic-Immo ou Bien'ici en un clic.
+    `,
+  },
+  'refus-permis-construire-recours': {
+    title: 'Refus de permis de construire : recours et solutions 2025',
+    date: '2024-12-15',
+    readTime: '8 min',
+    category: 'Recours',
+    image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1200&q=80',
+    content: `
+Voir le contenu détaillé sur les recours dans notre article principal sur le sujet.
+
+## Les 3 voies de recours
+
+1. **Recours gracieux** au maire (2 mois)
+2. **Recours contentieux** au tribunal administratif (2 mois après réponse)
+3. **Modification du projet** et nouveau dépôt
+
+## Recours gracieux
+
+- Délai : 2 mois après notification
+- Lettre recommandée au maire
+- Taux de succès : ~15%
+- Coût : 0 €
+
+## Recours contentieux
+
+- Délai : 2 mois après réponse au gracieux
+- Saisir le tribunal administratif
+- Durée : 12 à 18 mois
+- Coût avocat : 2 000 à 6 000 €
+- Taux de succès : ~30%
+
+## Modifier le projet
+
+C'est souvent la voie **la plus rapide** :
+
+- Identifier la cause exacte du refus
+- Adapter le projet (hauteur, emprise, matériaux)
+- Redéposer immédiatement
+
+## Prévenir avec PermitAI
+
+PermitAI analyse votre PLU **avant le dépôt**. Taux d'acceptation des dossiers traités : 94 %.
+    `,
+  },
 };
 
 export async function generateMetadata({ params }) {

@@ -18,6 +18,12 @@ const isPublicRoute = createRouteMatcher([
   '/documentation',
   '/support',
   '/api-docs',
+  '/calculateurs',
+  '/agent-immobilier',
+  '/architecte',
+  '/promoteur',
+  '/particulier',
+  '/enterprise',
   '/mentions-legales',
   '/politique-confidentialite',
   '/cookies',
@@ -39,13 +45,12 @@ export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
-  
   return NextResponse.next();
 });
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     '/(api|trpc)(.*)',
   ],
 };
