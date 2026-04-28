@@ -21,10 +21,10 @@ const inter = Inter({
 export const metadata = {
   metadataBase: new URL('https://permitai.eu'),
   title: {
-    default: 'PermitAI - Votre permis de construire sans les mauvaises surprises',
+    default: 'PermitAI — Analyse PLU & Permis de construire en 3 minutes',
     template: '%s | PermitAI'
   },
-  description: 'PermitAI indexe les 36 000 Plans Locaux d\'Urbanisme de France, génère vos CERFA officiels et dépose votre dossier directement en mairie. Résultat en 3 minutes.',
+  description: 'Analysez votre PLU en 3 minutes. 34 970 communes indexées. CERFA auto-rempli. Dépôt mairie inclus.',
   keywords: ['permis de construire', 'PLU', 'urbanisme', 'CERFA', 'déclaration préalable', 'France', 'IA urbanisme', 'Plan Local Urbanisme'],
   authors: [{ name: 'PermitAI' }],
   creator: 'PermitAI',
@@ -34,8 +34,8 @@ export const metadata = {
     locale: 'fr_FR',
     url: 'https://permitai.eu',
     siteName: 'PermitAI',
-    title: 'PermitAI - Votre permis de construire sans les mauvaises surprises',
-    description: 'PermitAI indexe les 36 000 Plans Locaux d\'Urbanisme de France, génère vos CERFA officiels et dépose votre dossier directement en mairie.',
+    title: 'PermitAI — Analyse PLU & Permis de construire en 3 minutes',
+    description: 'Analysez votre PLU en 3 minutes. 34 970 communes indexées. CERFA auto-rempli. Dépôt mairie inclus.',
     images: [
       {
         url: '/og-image.png',
@@ -47,7 +47,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PermitAI - Votre permis de construire sans les mauvaises surprises',
+    title: 'PermitAI — Analyse PLU & Permis de construire en 3 minutes',
     description: 'PermitAI indexe les 36 000 Plans Locaux d\'Urbanisme de France.',
     images: ['/og-image.png'],
   },
