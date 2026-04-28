@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SignInButton, SignUpButton, useUser } from '@clerk/nextjs';
 import { ArrowRight, MapPin, FileText, Upload, Bell, Shield, TrendingUp, Search, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 function LogoMark() {
   return (
@@ -457,18 +458,11 @@ export default function LandingPage() {
                   <label style={{ display: 'block', fontSize: 12, color: '#8d887f', marginBottom: 8, fontWeight: 500 }}>
                     Adresse du projet *
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <MapPin style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, color: '#8d887f' }} />
-                    <input
-                      type="text"
-                      value={demoAddress}
-                      onChange={(e) => setDemoAddress(e.target.value)}
-                      placeholder="Ex: 10 rue de la République, 75001 Paris"
-                      className="input-premium"
-                      style={{ paddingLeft: 44, width: '100%' }}
-                      required
-                    />
-                  </div>
+                  <AddressAutocomplete
+                    value={demoAddress}
+                    onChange={setDemoAddress}
+                    placeholder="Ex: 10 rue de la République, 75001 Paris"
+                  />
                 </div>
 
                 <div>

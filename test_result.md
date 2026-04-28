@@ -289,7 +289,35 @@ backend:
         comment: "✅ PASS - CERFA database integration working correctly. Prisma client successfully connects to PostgreSQL database, cerfa_formulaires table contains 13 forms with proper schema including JSON fields for champsRequis and piecesJointes"
 
 frontend:
-  # No frontend testing required for this task
+  - task: "AddressAutocomplete component integration"
+    implemented: true
+    working: true
+    file: "components/AddressAutocomplete.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Replaced AddressAutocomplete.js with exact code provided by user. Uses inline styles, default suggestions on focus, fetches from api-adresse.data.gouv.fr when length >= 2. Integrated into landing (/), /analyse, and /demo pages."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS - AddressAutocomplete working perfectly across all pages. Landing page: 11 suggestions with emoji icons (🏘), footer '34 970 communes indexées · Données officielles' visible, dropdown closes after selection, API search with 'Toulouse' works. Demo page: 10 default suggestions appear on focus, selection fills input correctly. Analyse page: 10 default suggestions, selection works properly."
+
+  - task: "Live demo page rebuild"
+    implemented: true
+    working: true
+    file: "app/demo/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Live demo with AddressAutocomplete + 'Lancer l'analyse gratuite' button + 2s spinner + partial mocked result with blurred locked rules + CTA to /sign-up. Public route configured in middleware.ts."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS - Demo page working perfectly. Loads without authentication ✓, heading 'Testez l'analyse PLU gratuitement' visible ✓, address autocomplete with 10 suggestions ✓, 'Lancer l'analyse gratuite' button triggers 2s spinner with 'Analyse en cours...' ✓, results show Zone 'UB — Résidentiel pavillonnaire' ✓, Verdict 'Conforme' ✓, Score 87% with progress bar ✓, 2 visible rules (Hauteur maximale, Emprise au sol) ✓, 1 blurred section with '3 règles supplémentaires' overlay ✓, CTA 'Créer un compte gratuit' links to /sign-up ✓."
 
 metadata:
   created_by: "testing_agent"
@@ -314,3 +342,5 @@ agent_communication:
     message: "🔍 STARTING CERFA API TESTING - Testing Priority 2 CERFA APIs: GET /api/cerfa/all and GET /api/cerfa/[numero]. Fixed middleware authentication issue by adding /api/cerfa(.*)  to public routes. Added CERFA route handlers to catch-all route due to Next.js routing precedence."
   - agent: "testing"
     message: "✅ CERFA API TESTING COMPLETE - All 6 CERFA API tests passed successfully (6/6). Database contains 13 CERFA forms as expected. All endpoints working: GET /api/cerfa/all returns all forms ✅, GET /api/cerfa/[numero] returns specific forms ✅, Error handling for invalid numero ✅, Database connection via Prisma ✅, JSON response format ✅, CORS headers ✅. CERFA APIs fully functional and production-ready."
+  - agent: "testing"
+    message: "🎯 FRONTEND TESTING COMPLETE - AddressAutocomplete integration and live demo flow fully functional. All 5 critical requirements verified: (1) Default suggestions on focus ✅ (11 suggestions with emoji icons), (2) Emoji icons present ✅ (🏘 for defaults, 📍 for API), (3) Footer '34 970 communes indexées · Données officielles' visible ✅, (4) 2s spinner 'Analyse en cours...' on demo ✅, (5) Blurred locked rules with /sign-up CTA ✅. Demo page loads without auth, shows proper results with Zone 'UB — Résidentiel pavillonnaire', Verdict 'Conforme', Score 87%, 2 visible rules, and locked overlay. All pages (/, /demo, /analyse) have working autocomplete."

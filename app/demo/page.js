@@ -15,8 +15,8 @@ export default function DemoPage() {
     setLoading(true);
     setResult(null);
 
-    // Simulate 3 seconds loading
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Simulate 2 seconds loading
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     setResult({
       success: true,
