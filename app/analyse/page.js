@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { MapPin, Search, ArrowRight, TrendingUp, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import AddressAutocomplete from '../../components/AddressAutocomplete';
 
 function LogoMark() {
   return (
@@ -123,15 +124,11 @@ export default function AnalysePage() {
             <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 22 }}>L'IA comprend le langage naturel</div>
 
             <label className="input-label" style={{ display: 'block', fontSize: 10, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.3px', marginBottom: 5, fontWeight: 500 }}>Adresse du terrain *</label>
-            <div style={{ position: 'relative', marginBottom: 13 }}>
-              <MapPin size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#3e3a34' }} />
-              <input
+            <div style={{ marginBottom: 13 }}>
+              <AddressAutocomplete
                 value={address}
-                onChange={e => setAddress(e.target.value)}
+                onChange={setAddress}
                 placeholder="47 avenue Victor Hugo, 69003 Lyon"
-                className="input-premium"
-                style={{ paddingLeft: 34 }}
-                onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
               />
             </div>
 
