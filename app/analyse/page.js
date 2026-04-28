@@ -267,12 +267,21 @@ function AnalysePage() {
                       <div style={{ fontSize: 10, color: '#3e3a34', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>CERFA recommandé</div>
                       <div style={{ fontSize: 12, fontWeight: 500, color: '#f2efe9' }}>{result.cerfa_recommande} — Permis de construire MI</div>
                     </div>
-                    <Link href="/cerfa">
+                    <Link href={`/cerfa/wizard?cerfa=${encodeURIComponent(result.cerfa_recommande)}&adresse=${encodeURIComponent(address)}&commune=${encodeURIComponent(result.commune || '')}&zone=${encodeURIComponent(result.zone || '')}&surface=${encodeURIComponent(surface || '')}&type=${encodeURIComponent(projectType || '')}`}>
                       <button style={{ padding: '6px 14px', background: 'rgba(160,120,32,.1)', border: '0.5px solid rgba(160,120,32,.25)', borderRadius: 7, fontSize: 11, color: '#c4960a', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                        Remplir le CERFA →
+                        Remplir le CERFA automatiquement →
                       </button>
                     </Link>
                   </div>
+                )}
+
+                {/* CTA Wizard always (even without cerfa_recommande) */}
+                {!result.cerfa_recommande && result.commune && (
+                  <Link href={`/cerfa/wizard?adresse=${encodeURIComponent(address)}&commune=${encodeURIComponent(result.commune || '')}&zone=${encodeURIComponent(result.zone || '')}&surface=${encodeURIComponent(surface || '')}&type=${encodeURIComponent(projectType || '')}`}>
+                    <button style={{ width: '100%', marginTop: 10, padding: '11px 0', background: 'linear-gradient(90deg, #a07820, #c4960a)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      Remplir le CERFA automatiquement →
+                    </button>
+                  </Link>
                 )}
               </div>
             ) : (

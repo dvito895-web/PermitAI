@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight, Clock } from 'lucide-react';
 
 const EMOJI_MAP = {
   '13406': '🏠',
@@ -48,8 +48,12 @@ export default function CerfaListClient({ initialCerfas }) {
   return (
     <>
       <div style={{ background: '#0c0c18', border: '0.5px solid #1c1c2a', borderRadius: 12, padding: 24, marginBottom: 32 }}>
-        <div style={{ position: 'relative', marginBottom: 24 }}>
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#5a5650' }} />
+        <div style={{ position: 'relative', maxWidth: 600, margin: '0 auto 20px' }}>
+          <svg style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="7" cy="7" r="5" stroke="#5a5650" strokeWidth="1.3"/>
+            <path d="M11 11L14 14" stroke="#5a5650" strokeWidth="1.3" strokeLinecap="round"/>
+          </svg>
           <input
             type="text"
             value={search}
@@ -57,13 +61,13 @@ export default function CerfaListClient({ initialCerfas }) {
             placeholder="Rechercher un CERFA par numéro ou nom..."
             style={{
               width: '100%',
-              paddingLeft: 48,
-              padding: '12px 16px',
-              background: '#06060e',
+              background: '#0a0a14',
               border: '0.5px solid #1c1c2a',
-              borderRadius: 8,
-              color: '#f2efe9',
+              borderRadius: 12,
+              padding: '14px 16px 14px 44px',
               fontSize: 14,
+              color: '#f2efe9',
+              fontFamily: 'inherit',
               outline: 'none',
             }}
           />
