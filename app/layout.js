@@ -1,7 +1,6 @@
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Fraunces, Inter } from 'next/font/google';
-import Footer from '../components/Footer';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -117,7 +116,19 @@ export default function RootLayout({ children }) {
         </head>
         <body className="antialiased" style={{ fontFamily: 'var(--font-inter)' }}>
           {children}
-          <Footer />
+          <footer style={{ borderTop: '0.5px solid #1c1c2a', padding: '20px 52px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#06060e', fontFamily: 'sans-serif', flexWrap: 'wrap', gap: 10 }}>
+            <span style={{ fontSize: 11, color: '#3e3a34' }}>© 2025 PermitAI · contact@permitai.eu</span>
+            <div style={{ display: 'flex', gap: 20 }}>
+              <a href="/cgu" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>CGU</a>
+              <a href="/politique-confidentialite" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>Confidentialité</a>
+              <a href="/mentions-legales" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>Mentions légales</a>
+              <a href="/tarifs" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>Tarifs</a>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }}></div>
+              <span style={{ fontSize: 11, color: '#3e3a34' }}>Systèmes opérationnels</span>
+            </div>
+          </footer>
         </body>
       </html>
     </ClerkProvider>
