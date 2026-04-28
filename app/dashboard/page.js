@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
-import { TrendingUp, FileText, Bell, ArrowRight, Star, AlertCircle } from 'lucide-react';
+import { TrendingUp, FileText, Bell, ArrowRight, Star, AlertCircle, History, Sparkles, Clock } from 'lucide-react';
 
 function LogoMark() {
   return (
@@ -114,6 +115,30 @@ const ALERTS = [
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [analyses, setAnalyses] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchAnalyses();
+    }
+  }, [activeTab]);
+
+  const fetchAnalyses = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch('/api/analyses/history');
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyses(data);
+      }
+    } catch (error) {
+      console.error('Error fetching analyses:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   if (!isLoaded) {
     return (
@@ -177,7 +202,43 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* ACTIONS RAPIDES */}
+        {/* TABS */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 24, borderBottom: '0.5px solid #1c1c2a', paddingBottom: 0 }}>
+          {[
+            { id: 'overview', label: 'Vue d\'ensemble', icon: TrendingUp },
+            { id: 'history', label: 'Historique', icon: History },
+            { id: 'assistant', label: 'Assistant CERFA', icon: Sparkles },
+            { id: 'alerts', label: 'Alertes', icon: Bell },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '10px 16px',
+                background: activeTab === tab.id ? 'rgba(160,120,32,.08)' : 'transparent',
+                border: 'none',
+                borderBottom: activeTab === tab.id ? '2px solid #a07820' : '2px solid transparent',
+                color: activeTab === tab.id ? '#e8b420' : '#8d887f',
+                fontSize: 13,
+                fontWeight: activeTab === tab.id ? 500 : 400,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.2s',
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* CONTENT BASED ON TAB */}
+        {activeTab === 'overview' && (
+          <div>
+            {/* ACTIONS RAPIDES */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 14, fontWeight: 500, color: '#f2efe9', marginBottom: 12 }}>Actions rapides</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
@@ -253,6 +314,156 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+          </div>
+        )}
+
+        {/* Historique */}
+        {activeTab === 'history' && (
+          <div>
+            <div className="card-premium mb-6">
+              <h2 className="text-[18px] font-medium text-[#f0ede8] mb-4 flex items-center gap-2">
+                <History className="w-5 h-5 text-[#e8b420]" />
+                Historique des analyses PLU
+              </h2>
+              <p className="text-[13px] text-[#8a857d] mb-6">
+                Retrouvez toutes vos analyses PLU passées et téléchargez les rapports.
+              </p>
+
+              {loadingHistory ? (
+                <div className="text-center py-8 text-[#8a857d] text-[13px]">Chargement...</div>
+              ) : analyses.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-[48px] mb-4">📊</div>
+                  <h3 className="text-[18px] font-medium text-[#f0ede8] mb-2">Aucune analyse pour l'instant</h3>
+                  <p className="text-[13px] text-[#8a857d] mb-6">
+                    Lancez votre première analyse PLU pour voir l'historique apparaître ici.
+                  </p>
+                  <Link href="/analyse">
+                    <button className="btn-primary">Analyser mon terrain</button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {analyses.map((analysis, i) => (
+                    <div key={i} className="bg-[#0e0e1a] border border-[#1c1c2a] rounded-lg p-4 flex items-center justify-between hover:border-[#a07820] transition-colors cursor-pointer">
+                      <div className="flex-1">
+                        <div className="text-[14px] font-medium text-[#f0ede8] mb-1">{analysis.adresse}</div>
+                        <div className="text-[11px] text-[#8a857d]">{new Date(analysis.createdAt).toLocaleDateString('fr-FR')}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="badge-premium" style={{ background: analysis.verdict === 'Conforme' ? '#4ade8022' : '#e8b42022', color: analysis.verdict === 'Conforme' ? '#4ade80' : '#e8b420' }}>
+                          {analysis.verdict || 'Analysé'}
+                        </div>
+                        <button className="btn-secondary text-[11px] py-1 px-3">Voir</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Assistant CERFA */}
+        {activeTab === 'assistant' && (
+          <div>
+            <div className="card-premium mb-6 bg-gradient-to-br from-[#14141f] to-[#0a0a14]">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 rounded-lg bg-[#e8b420] bg-opacity-10 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-6 h-6 text-[#e8b420]" />
+                </div>
+                <div>
+                  <h2 className="text-[20px] font-medium text-[#f0ede8] mb-2">Assistant CERFA IA</h2>
+                  <p className="text-[14px] text-[#8a857d]">
+                    L'IA vous guide pas à pas pour remplir le bon formulaire CERFA selon votre projet.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[13px] text-[#8a857d] mb-2">Décrivez votre projet</label>
+                  <textarea
+                    placeholder="Ex: Extension de 40m² pour une maison individuelle à Lyon"
+                    className="input-premium w-full min-h-[100px]"
+                  />
+                </div>
+
+                <button className="btn-primary w-full flex items-center justify-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Identifier mon CERFA
+                </button>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-[#1c1c2a]">
+                <div className="text-[13px] font-medium text-[#f0ede8] mb-3">CERFA les plus utilisés :</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { num: '13406', name: 'Permis maison individuelle' },
+                    { num: '13409', name: 'Déclaration préalable' },
+                    { num: '13703', name: 'Transfert de permis' },
+                    { num: '13702', name: 'Modificatif PC' },
+                  ].map(cerfa => (
+                    <Link key={cerfa.num} href={`/cerfa/${cerfa.num}`}>
+                      <div className="bg-[#0e0e1a] border border-[#1c1c2a] rounded-lg p-3 hover:border-[#a07820] transition-colors cursor-pointer">
+                        <div className="text-[11px] text-[#8a857d] mb-1">CERFA {cerfa.num}</div>
+                        <div className="text-[13px] text-[#f0ede8]">{cerfa.name}</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Alertes Tab */}
+        {activeTab === 'alerts' && (
+          <div>
+            <div className="card-premium">
+              <h2 className="text-[18px] font-medium text-[#f0ede8] mb-4 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-[#ef4444]" />
+                Toutes les alertes
+              </h2>
+              
+              <div className="space-y-3">
+                {ALERTS.map((a, i) => (
+                  <div key={i} className="bg-[#0e0e1a] border-l-2 rounded-lg p-4" style={{ borderColor: a.color, background: a.bg }}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="badge-premium text-[10px]" style={{ background: `${a.color}22`, color: a.color }}>
+                        {a.type}
+                      </div>
+                      <div className="text-[10px] text-[#8a857d]">{a.date}</div>
+                    </div>
+                    <p className="text-[13px] text-[#8a857d] leading-relaxed">{a.msg}</p>
+                    <button className="mt-3 text-[12px] text-[#e8b420] font-medium">Voir le dossier →</button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 p-4 bg-[#0e0e1a] border border-[#1c1c2a] rounded-lg">
+                <div className="text-[13px] font-medium text-[#f0ede8] mb-2">Configuration des alertes</div>
+                <p className="text-[12px] text-[#8a857d] mb-4">
+                  Recevez des notifications par email pour ne jamais manquer une échéance importante.
+                </p>
+                <div className="space-y-2 text-[12px]">
+                  <label className="flex items-center gap-2 text-[#8a857d]">
+                    <input type="checkbox" defaultChecked className="w-4 h-4" />
+                    Alertes délais légaux
+                  </label>
+                  <label className="flex items-center gap-2 text-[#8a857d]">
+                    <input type="checkbox" defaultChecked className="w-4 h-4" />
+                    Révisions PLU
+                  </label>
+                  <label className="flex items-center gap-2 text-[#8a857d]">
+                    <input type="checkbox" className="w-4 h-4" />
+                    Nouveaux documents requis
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* PLAN ACTUEL */}
         <div style={{ marginTop: 14, background: '#0e0e1a', border: '0.5px solid #1c1c2a', borderRadius: 12, padding: '18px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
