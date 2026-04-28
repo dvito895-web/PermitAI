@@ -1,18 +1,12 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
-import prisma from '../../../../lib/db.js';
+import { CERFA_LIST } from '../../../../lib/cerfaList';
 
 export async function GET() {
   try {
-    const cerfas = await prisma.cerfaFormulaire.findMany({
-      orderBy: { numero: 'asc' }
-    });
-
-    return NextResponse.json(cerfas);
+    return NextResponse.json({ cerfa: CERFA_LIST });
   } catch (error) {
-    console.error('CERFA list error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ cerfa: [] });
   }
 }
