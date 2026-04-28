@@ -163,15 +163,32 @@ export default function TarifsPage() {
     setLoading(true);
 
     try {
-      // Mapping planId + billing → priceId (placeholders pour l'instant)
+      // Vérifier si Stripe est configuré
+      const hasStripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY !== 'pk_test_placeholder';
+      
+      if (!hasStripeKey) {
+        // Fallback vers email si Stripe non configuré
+        window.location.href = `mailto:contact@permitai.eu?subject=Demande abonnement ${planName}&body=Bonjour,%0D%0A%0D%0AJe souhaite souscrire au plan ${planName} (${billing === 'monthly' ? 'mensuel' : 'annuel'}).%0D%0A%0D%0AMerci de me contacter pour finaliser.`;
+        setLoading(false);
+        return;
+      }
+
+      // Mapping planId + billing → priceId
       const priceMap = {
-        starter_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_MONTHLY || 'price_placeholder_starter_monthly',
-        starter_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL || 'price_placeholder_starter_annual',
-        pro_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || 'price_placeholder_pro_monthly',
-        pro_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL || 'price_placeholder_pro_annual',
+        starter_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_MONTHLY || null,
+        starter_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL || null,
+        pro_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || null,
+        pro_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL || null,
       };
 
       const priceId = priceMap[`${planId}_${billing}`];
+
+      if (!priceId) {
+        // Fallback si price ID manquant
+        window.location.href = `mailto:contact@permitai.eu?subject=Demande abonnement ${planName}`;
+        setLoading(false);
+        return;
+      }
 
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',

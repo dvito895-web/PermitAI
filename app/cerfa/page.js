@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Building2 } from 'lucide-react';
-import prisma from '../../lib/db.js';
 import CerfaListClient from './CerfaListClient';
+import { CERFA_LIST } from '../../lib/cerfaList';
 
 export const metadata = {
   title: 'Formulaires CERFA — 13 types de permis et déclarations',
@@ -9,11 +9,7 @@ export const metadata = {
 };
 
 export default async function CerfaListPage() {
-  const cerfas = await prisma.cerfaFormulaire.findMany({
-    orderBy: { numero: 'asc' }
-  });
-
-  const cerfasData = cerfas.map(c => ({
+  const cerfasData = CERFA_LIST.map(c => ({
     numero: c.numero,
     nom: c.nom,
     description: c.description,
