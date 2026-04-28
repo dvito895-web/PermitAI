@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SignInButton, SignUpButton, useUser } from '@clerk/nextjs';
 import { ArrowRight, MapPin, FileText, Upload, Bell, Shield, TrendingUp, Search, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import AddressInput from '../components/AddressInput';
 
 function LogoMark() {
@@ -241,22 +240,11 @@ const PROCESS = [
 
 export default function LandingPage() {
   const { isSignedIn } = useUser();
-  const router = useRouter();
-  const [heroAddress, setHeroAddress] = useState('');
   const [demoAddress, setDemoAddress] = useState('');
   const [demoDescription, setDemoDescription] = useState('');
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState(null);
   const [liveCount, setLiveCount] = useState(4847);
-
-  const handleHeroSubmit = (e) => {
-    e.preventDefault();
-    if (heroAddress?.trim()) {
-      router.push(`/analyse?adresse=${encodeURIComponent(heroAddress.trim())}`);
-    } else {
-      router.push('/analyse');
-    }
-  };
 
   const handleDemoAnalysis = async (e) => {
     e.preventDefault();
@@ -341,24 +329,29 @@ export default function LandingPage() {
               Votre permis de<br />construire. <em>Sans les<br />mauvaises surprises.</em>
             </h1>
             <p className="hero-subtitle animate-fade-in-up animate-delay-2" style={{ maxWidth: 460, marginBottom: 30 }}>
-              PermitAI indexe les 36 000 Plans Locaux d'Urbanisme de France,
-              remplit vos CERFA officiels et dépose votre dossier directement
-              en mairie. Résultat garanti en 3 minutes.
-              <h1>Analysez votre PLU en 3 minutes</h1>
+              Résultats garantis.
             </p>
-            <form onSubmit={handleHeroSubmit} style={{ display: 'flex', gap: 9, marginBottom: 16, alignItems: 'stretch' }} className="animate-fade-in-up animate-delay-3">
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <AddressInput value={heroAddress} onChange={setHeroAddress} placeholder="Tapez l'adresse de votre terrain…" />
-              </div>
-              <button type="submit" className="btn-primary" style={{ flexShrink: 0 }}>
-                Analyser
-                <div className="btn-arrow">→</div>
-              </button>
-            </form>
-            <div style={{ display: 'flex', gap: 9, marginBottom: 26 }}>
-              <Link href="/demo">
-                <button type="button" className="btn-secondary">Voir une démo live</button>
-              </Link>
+            <div className="animate-fade-in-up animate-delay-3" style={{ marginBottom: 26 }}>
+              <a href="/analyse">
+                <button style={{
+                  padding: '18px 48px',
+                  background: 'linear-gradient(90deg, #a07820, #c4960a)',
+                  border: 'none',
+                  borderRadius: 14,
+                  color: '#fff',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  boxShadow: '0 4px 24px rgba(160,120,32,.3)',
+                  letterSpacing: '-0.3px',
+                }}>
+                  Analyser votre terrain en 3 minutes →
+                </button>
+              </a>
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               {['Analyse en 3 min', '13 CERFA couverts', 'Dépôt mairie inclus', 'Données officielles'].map(t => (
