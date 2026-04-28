@@ -292,7 +292,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', gap: 2 }}>
             <Link href="/analyse" className="nav-link">Analyse PLU</Link>
             <Link href="/cerfa" className="nav-link">CERFA</Link>
-            <Link href="/#comment-ca-marche" className="nav-link">Comment ça marche</Link>
+            <Link href="/blog" className="nav-link">Blog</Link>
             <Link href="/tarifs" className="nav-link">Tarifs</Link>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
