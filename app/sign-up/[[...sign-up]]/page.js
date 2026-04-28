@@ -4,7 +4,7 @@ import { SignUp } from '@clerk/nextjs';
 
 export default function SignUpPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#06060e]">
+    <div style={{ minHeight: '100vh', background: '#06060e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <SignUp
         path="/sign-up"
         routing="path"
