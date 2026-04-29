@@ -47,7 +47,7 @@ export default function DepotPage() {
     if (!val) { setSugg([]); setShowSugg(false); return; }
     addrTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=6&autocomplete=1`);
+        const url = `/api/address?q=${encodeURIComponent(val)}&limit=6`;
         const d = await res.json();
         const results = (d.features || []).map(f => ({
           label: f.properties.label, city: f.properties.city,
