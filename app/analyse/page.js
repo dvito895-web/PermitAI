@@ -38,7 +38,7 @@ export default function AnalysePage() {
     if (!val || val.length < 1) { setAddrSugg([]); setAddrOpen(false); return; }
     addrTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=6&autocomplete=1`);
+        const url = `/api/address?q=${encodeURIComponent(val)}&limit=6`;
         const data = await res.json();
         const s = (data.features || []).map(f => ({
           label: f.properties.label,
