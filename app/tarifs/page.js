@@ -1,580 +1,325 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import Link from 'next/link';
+import { Building2, ArrowRight, Check, X, Sparkles, ArrowLeft } from 'lucide-react';
 
-function LogoMark() {
-  return (
-    <div style={{ width: 28, height: 28, background: '#a07820', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-        <path d="M1 5.5L7 1L13 5.5V13H1V5.5Z" stroke="white" strokeWidth="1.2" />
-        <rect x="4.5" y="8" width="4" height="5" rx=".4" fill="white" />
-      </svg>
-    </div>
-  );
-}
-
-/* ─── PRICING DATA ───────────────────────────────────────
-   MENSUEL  : prix + barré (pas de %)
-   ANNUEL   : total/an + barré + % réel + equiv mensuelle
-───────────────────────────────────────────────────────── */
-const PLANS = [
-  {
-    id: 'free',
-    name: 'Gratuit',
-    segment: 'Pour découvrir sans engagement',
-    monthlyPrice: 0,   monthlyOrig: 0,
-    annualTotal: 0,    annualOrig: 0,   annualMonthly: 0,  annualPct: 0,
-    bonus: null,
-    showSub: false,
-    features: ['1 analyse PLU / mois', '2 règles visibles sur 15+', 'Résumé en 1 phrase', 'IA Standard'],
-    locked: ['CERFA + PDF officiel', 'Dépôt en mairie', 'Alertes PLU'],
-    cta: 'Commencer gratuitement',
-    ctaStyle: 'ghost',
-    popular: false,
-  },
-  {
-    id: 'starter',
-    name: 'Starter',
-    segment: 'Pour les particuliers',
-    monthlyPrice: 49,   monthlyOrig: 79,
-    annualTotal: 411,   annualOrig: 588,  annualMonthly: 34, annualPct: 30,
-    bonus: '1 refus évité = 5 mois d\'abonnement',
-    showSub: true,
-    features: ['⭐ IA Premium', '10 analyses PLU / mois', 'Toutes les règles PLU applicables', '3 CERFA + PDF officiel', '2 dépôts mairie / mois', 'Notice descriptive IA', 'Alertes délais légaux', 'Support 48h'],
-    locked: [],
-    cta: 'Choisir Starter',
-    ctaStyle: 'outline',
-    popular: false,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    segment: 'Pour agents immo & constructeurs',
-    monthlyPrice: 149,  monthlyOrig: 229,
-    annualTotal: 1252,  annualOrig: 1788, annualMonthly: 104, annualPct: 30,
-    bonus: '5 utilisateurs · API · ROI immédiat',
-    showSub: true,
-    features: ['⭐ IA Premium', 'Analyses PLU illimitées', '13 CERFA illimités + PDF', 'Dépôts illimités PLAT\'AU + LRAR', '5 utilisateurs inclus', 'API REST 1 000 req / mois', 'Alertes révisions PLU', 'Support prioritaire 4h'],
-    locked: [],
-    cta: 'Choisir Pro',
-    ctaStyle: 'primary',
-    popular: true,
-  },
-  {
-    id: 'cabinet',
-    name: 'Cabinet',
-    segment: 'Pour cabinets & promoteurs',
-    monthlyPrice: 499,  monthlyOrig: 799,
-    annualTotal: 4191,  annualOrig: 5988, annualMonthly: 349, annualPct: 30,
-    bonus: 'Tout illimité · SLA · Support dédié',
-    showSub: true,
-    features: ['⭐ IA Premium', 'Tout Pro inclus', 'Utilisateurs illimités', 'API illimitée', 'Multi-clients & projets', 'Account manager dédié', 'SLA 99,9%', 'Support dédié < 2h'],
-    locked: [],
-    cta: 'Choisir Cabinet',
-    ctaStyle: 'outline',
-    popular: false,
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    segment: 'White-label · Sur mesure',
-    monthlyPrice: null, monthlyOrig: null,
-    annualTotal: null,  annualOrig: null, annualMonthly: null, annualPct: 0,
-    bonus: 'White-label · Formation · API dédiée',
-    showSub: false,
-    features: ['Tout Cabinet inclus', 'Solution white-label', 'Domaine personnalisé', 'API dédiée prioritaire', 'Formation équipe', 'SSO SAML', 'Onboarding sur mesure', 'Account manager senior'],
-    locked: [],
-    cta: 'Demander un devis',
-    ctaStyle: 'outline',
-    popular: false,
-    customPrice: 'Sur devis',
-  },
+// ====== ONE-SHOT PRODUCTS ======
+const ONE_SHOT_PRODUCTS = [
+  { id: 'analyse', emoji: '🔍', titre: 'Analyse PLU + rapport PDF', prix: 49, badge: 'Remplace 500€ cabinet', desc: 'Analyse complète + règles PLU applicables + rapport PDF officiel téléchargeable.' },
+  { id: 'cerfa', emoji: '📋', titre: 'CERFA pré-rempli + pièces vérifiées', prix: 99, badge: 'Remplace 800€ architecte', desc: 'CERFA officiel pré-rempli + liste des pièces à joindre vérifiées par IA.' },
+  { id: 'depot', emoji: '📬', titre: 'Dépôt mairie complet + suivi 60j', prix: 199, badge: 'Remplace 500€ géomètre', desc: 'Dépôt PLAT\'AU ou LRAR + tracking statut jusqu\'à décision (60 jours).' },
+  { id: 'pack', emoji: '🎁', titre: 'Pack Tout-en-un', prix: 299, prixBarre: 347, badge: 'Économisez 2 000€+', desc: 'Analyse PLU + CERFA + Dépôt mairie — tout compris.', recommande: true },
+  { id: 'recours', emoji: '⚖️', titre: 'Recours après refus', prix: 399, badge: 'Remplace avocat 1 500€', desc: 'Lettre de recours gracieux + dossier argumenté + jurisprudence IA.' },
+  { id: 'audit', emoji: '🔎', titre: 'Audit terrain avant achat', prix: 149, badge: 'Due diligence 3 min', desc: 'Analyse PLU avant compromis — évitez les mauvaises surprises.' },
 ];
 
-const COMPARISON = [
-  ['Durée analyse PLU',   '3 minutes',          '3 à 6 semaines',    '4 à 8 semaines'],
-  ['Coût vérification',   '29€/mois',           '800 à 2 000€',      'Inclus mais lent'],
-  ['CERFA pré-remplis',   'Automatique',        'Manuel',            'Non'],
-  ['Dépôt en mairie',     '1 clic PLAT\'AU',    'Déplacement',       'Déplacement'],
-  ['Suivi dossier',       'Alertes auto',       'Relances manuelles','Non suivi'],
-  ['Révisions PLU',       'Alertes temps réel', 'Non surveillé',     'Non surveillé'],
-  ['Disponibilité',       '24h/24 7j/7',        'Heures bureau',     'Heures bureau'],
+// ====== ABONNEMENTS ======
+const PROFILES = [
+  { id: 'particulier', label: 'Particulier' },
+  { id: 'agent', label: 'Agent immobilier' },
+  { id: 'architecte', label: 'Architecte' },
+  { id: 'promoteur', label: 'Promoteur' },
 ];
 
-const FAQ_ITEMS = [
-  { q: 'Mes données sont-elles sécurisées ?',           a: 'Oui. Toutes les données sont chiffrées en transit et au repos. Hébergement sur infrastructure européenne, conforme RGPD. Vos dossiers sont accessibles uniquement à vous.' },
-  { q: 'Puis-je annuler à tout moment ?',               a: 'Oui. Sans engagement, sans frais. Résiliez en 1 clic depuis votre dashboard. Vous conservez l\'accès jusqu\'à la fin de la période payée.' },
-  { q: 'Les analyses sont-elles fiables ?',             a: 'PermitAI cite les articles exacts du PLU de votre commune, issus du Géoportail Urbanisme officiel. Outil d\'aide à la décision — ne remplace pas un conseil juridique pour les cas très complexes.' },
-  { q: 'Est-ce que ma commune est couverte ?',          a: 'Oui. Les 36 000 communes de France sont indexées. Que vous soyez dans une grande ville, une ville moyenne ou un village, votre PLU est disponible et analysé en temps réel.' },
-  { q: 'Quelle différence entre IA Standard et Premium ?', a: 'L\'IA Standard (gratuit) affiche 2 règles et un résumé en 1 phrase. L\'IA Premium (plans payants) cite toutes les règles applicables, génère la notice descriptive et fournit un score de confiance précis.' },
-  { q: 'Le dépôt en mairie est-il légal ?',             a: 'Oui. PermitAI utilise PLAT\'AU, la plateforme nationale officielle, et La Poste LRAR pour les mairies non raccordées. L\'accusé de réception a pleine valeur légale.' },
+const ALL_PLANS = {
+  starter: { id: 'starter', name: 'Starter', price: 29, priceAnnual: 22, features: ['3 analyses PLU / mois', '1 CERFA pré-rempli / mois', 'Alertes PLU sur 1 adresse', 'Rapport PDF basique', 'Support email 48h'] },
+  pro: { id: 'pro', name: 'Pro', price: 89, priceAnnual: 67, features: ['Analyses PLU illimitées', '13 CERFA illimités + PDF', 'Dépôts PLAT\'AU illimités', '5 utilisateurs inclus', 'API REST 500 req/mois', 'Rapport white-label PDF', 'Extension Chrome agents immo', 'Alertes révisions PLU', 'Support prioritaire 4h'] },
+  cabinet: { id: 'cabinet', name: 'Cabinet', price: 299, priceAnnual: 224, features: ['Tout Pro inclus', 'Utilisateurs illimités', 'Multi-clients & projets', 'API 5 000 req/mois', 'Account manager dédié', 'Export comptable CSV', 'Co-branding rapports', 'Support dédié < 2h'] },
+  enterprise: { id: 'enterprise', name: 'Enterprise', price: null, priceAnnual: null, features: ['Tout Cabinet inclus', 'Solution white-label', 'API illimitée + SLA 99,9%', 'SSO SAML', 'Onboarding sur site', 'Formation équipe', 'Tarif au volume'] },
+};
+
+const PLANS_BY_PROFILE = {
+  particulier: [{ ...ALL_PLANS.starter, recommande: false }, { ...ALL_PLANS.pro, recommande: true }],
+  agent:       [{ ...ALL_PLANS.pro, recommande: true }, { ...ALL_PLANS.cabinet, recommande: false }],
+  architecte:  [{ ...ALL_PLANS.cabinet, recommande: true }, { ...ALL_PLANS.enterprise, recommande: false }],
+  promoteur:   [{ ...ALL_PLANS.enterprise, recommande: true }],
+};
+
+// ====== COMPARATIF ======
+const COMPARATIF = [
+  { feature: 'Prix dossier complet', permitai: '299€', geometre: '500€', architecte: '2 000-8 000€', cabinet: '1 500-3 000€', seul: '0€' },
+  { feature: 'Délai', permitai: '3 min', geometre: '1-2 sem.', architecte: '4-8 sem.', cabinet: '2-3 sem.', seul: '4 sem.' },
+  { feature: 'Taux acceptation', permitai: '94%', geometre: '85%', architecte: '95%', cabinet: '92%', seul: '40%' },
+  { feature: 'CERFA inclus', permitai: true, geometre: false, architecte: true, cabinet: true, seul: false },
+  { feature: 'Dépôt mairie', permitai: true, geometre: false, architecte: true, cabinet: false, seul: false },
+  { feature: 'Disponible 24h/7j', permitai: true, geometre: false, architecte: false, cabinet: false, seul: true },
+  { feature: 'Rapport PDF', permitai: true, geometre: true, architecte: true, cabinet: true, seul: false },
+  { feature: 'Suivi dossier', permitai: true, geometre: false, architecte: true, cabinet: true, seul: false },
+  { feature: 'Alertes PLU automatiques', permitai: true, geometre: false, architecte: false, cabinet: false, seul: false },
 ];
 
-const GUARANTEES = [
-  { icon: '🔒', title: 'Sans engagement',     sub: 'Résiliez en 1 clic' },
-  { icon: '⚡', title: '3 minutes',            sub: 'Résultat garanti' },
-  { icon: '🏛', title: 'Données officielles',  sub: 'Géoportail Urbanisme' },
-  { icon: '★',  title: '94% accordés',         sub: 'Contre 70% sans outil' },
-  { icon: '🗺', title: '36 000',               sub: 'Communes PLU indexées' },
+// ====== FAQ ======
+const FAQ = [
+  { q: 'Puis-je passer d\'un one-shot à un abonnement ?', a: 'Oui. Si vous achetez un one-shot puis souscrivez à un abonnement dans les 30 jours, le montant payé est déduit de votre premier mois.' },
+  { q: 'Les dossiers sont-ils officiellement valides ?', a: 'Oui. Les CERFA générés sont les formulaires officiels publiés par service-public.fr. Les analyses utilisent les données du Géoportail Urbanisme. Les dépôts PLAT\'AU sont des dépôts juridiquement opposables.' },
+  { q: 'Remboursement si refus ?', a: 'Pour les packs Dépôt et Pack Tout-en-un, nous remboursons 100% si le dossier est refusé pour un motif de non-conformité PermitAI n\'aurait pas détecté. Détails dans nos CGV.' },
+  { q: 'Facture disponible ?', a: 'Oui. Une facture nominative est générée automatiquement et disponible dans votre dashboard, conforme aux exigences fiscales françaises.' },
+  { q: 'Différence one-shot vs abonnement ?', a: 'Le one-shot couvre 1 projet ponctuel sans engagement. L\'abonnement convient si vous avez plusieurs projets dans l\'année (particulier multi-travaux), ou un usage professionnel récurrent (agent, architecte).' },
 ];
-
-function fmt(n) { return n > 999 ? n.toLocaleString('fr-FR') : String(n); }
-
-function CheckIcon({ color }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
-      <circle cx="7" cy="7" r="6" fill={`${color}14`} stroke={`${color}36`} strokeWidth="1" />
-      <path d="M4.5 7l2 2L9.5 5" stroke={color} strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function StarCheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
-      <circle cx="7" cy="7" r="6" fill="rgba(232,180,32,.1)" stroke="rgba(232,180,32,.3)" strokeWidth="1" />
-      <path d="M4.5 7l2 2L9.5 5" stroke="#e8b420" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CrossIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
-      <line x1="4.5" y1="4.5" x2="9.5" y2="9.5" stroke="#1a1a2c" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="9.5" y1="4.5" x2="4.5" y2="9.5" stroke="#1a1a2c" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export default function TarifsPage() {
-  const [billing, setBilling] = useState('monthly');
+  const [profile, setProfile] = useState('particulier');
+  const [annual, setAnnual] = useState(false);
+  const [loading, setLoading] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const isAnnual = billing === 'annual';
-  const router = useRouter();
-  const { isSignedIn } = useUser();
 
-  const handleSubscribe = async (planId, planName) => {
-    if (planId === 'free') {
-      router.push('/sign-up');
-      return;
-    }
-
-    if (!isSignedIn) {
-      router.push('/sign-up');
-      return;
-    }
-
-    if (planId === 'cabinet' || planId === 'enterprise') {
-      router.push('/enterprise');
-      return;
-    }
-
-    setLoading(true);
-
+  const handleOneShot = async (productId) => {
+    setLoading(productId);
     try {
-      // Vérifier si Stripe est configuré
-      const hasStripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY !== 'pk_test_placeholder';
-      
-      if (!hasStripeKey) {
-        // Fallback vers email si Stripe non configuré
-        window.location.href = `mailto:contact@permitai.eu?subject=Demande abonnement ${planName}&body=Bonjour,%0D%0A%0D%0AJe souhaite souscrire au plan ${planName} (${billing === 'monthly' ? 'mensuel' : 'annuel'}).%0D%0A%0D%0AMerci de me contacter pour finaliser.`;
-        setLoading(false);
-        return;
-      }
-
-      // Mapping planId + billing → priceId
-      const priceMap = {
-        starter_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_MONTHLY || null,
-        starter_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL || null,
-        pro_monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || null,
-        pro_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL || null,
-      };
-
-      const priceId = priceMap[`${planId}_${billing}`];
-
-      if (!priceId) {
-        // Fallback si price ID manquant
-        window.location.href = `mailto:contact@permitai.eu?subject=Demande abonnement ${planName}`;
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch('/api/stripe/create-checkout-session', {
+      const r = await fetch('/api/stripe/one-time', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, planName }),
+        body: JSON.stringify({ product: productId }),
       });
-
-      const data = await res.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('Erreur création session');
-      }
-    } catch (error) {
-      console.error('Erreur checkout:', error);
-      alert('Une erreur est survenue. Veuillez réessayer.');
+      const data = await r.json();
+      if (data.url) window.location.href = data.url;
+    } catch (e) {
+      console.error(e);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#04040c', fontFamily: "'DM Sans', sans-serif", color: '#f2efe9' }}>
+  const plans = PLANS_BY_PROFILE[profile];
 
-      {/* ── NAV ── */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, height: 60, borderBottom: '0.5px solid #1c1c2a', background: 'rgba(4,4,12,.97)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
-            <LogoMark />
-            <span style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 500, color: '#f2efe9' }}>PermitAI</span>
+  return (
+    <div style={{ minHeight: '100vh', background: '#06060e', fontFamily: "'DM Sans', sans-serif", color: '#f2efe9' }}>
+      {/* NAV */}
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, height: 60, borderBottom: '0.5px solid #1c1c2a', background: 'rgba(6,6,14,.97)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', padding: '0 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: '#f2efe9' }}>
+            <Building2 size={20} color="#e8b420" />
+            <span style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 500 }}>PermitAI</span>
           </Link>
-          <Link href="/" style={{ fontSize: 12, color: '#5a5650', textDecoration: 'none' }}>← Retour à l'accueil</Link>
+          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#8d887f', textDecoration: 'none' }}>
+            <ArrowLeft size={14} /> Retour
+          </Link>
         </div>
       </nav>
 
-      {/* ── HEADER ── */}
-      <div style={{ padding: '60px 52px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 35% at 50% 0%, rgba(160,120,32,.06), transparent)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
+      {/* HEADER */}
+      <section style={{ padding: '60px 36px 40px', textAlign: 'center', maxWidth: 880, margin: '0 auto' }}>
+        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 48, fontWeight: 500, lineHeight: 1.1, letterSpacing: -1.2, marginBottom: 14 }}>
+          Choisissez votre formule
+        </h1>
+        <p style={{ fontSize: 16, color: '#8d887f', lineHeight: 1.6 }}>
+          Ce que vous payez <s style={{ color: '#5a5650' }}>3 000€</s> à un cabinet, faites-le pour <strong style={{ color: '#e8b420' }}>49€</strong>.
+        </p>
+      </section>
 
-          {/* LIVE DOT */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 14px', border: '0.5px solid rgba(239,68,68,.2)', borderRadius: 20, background: 'rgba(239,68,68,.06)', marginBottom: 26 }}>
-            <span style={{ display: 'block', width: 6, height: 6, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,.18)' }} />
-            <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 500 }}>30% des dossiers refusés au 1er dépôt en France</span>
+      {/* ===== ONE-SHOT EN HAUT ===== */}
+      <section style={{ padding: '0 36px 60px', maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ display: 'inline-block', padding: '5px 14px', borderRadius: 20, background: 'rgba(74,222,128,.1)', border: '0.5px solid rgba(74,222,128,.3)', fontSize: 11, color: '#4ade80', fontWeight: 600, marginBottom: 14 }}>
+            ✓ Paiement unique · Sans abonnement
           </div>
-
-          <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 52, fontWeight: 500, color: '#f2efe9', letterSpacing: -1.4, lineHeight: 1.06, marginBottom: 12 }}>
-            Simple, transparent,<br />
-            <em style={{ fontStyle: 'italic', color: '#e8b420' }}>sans surprise.</em>
-          </h1>
-          <p style={{ fontSize: 14, color: '#5a5650', fontWeight: 300, marginBottom: 4 }}>
-            Un refus de permis = <strong style={{ color: '#f2efe9', fontWeight: 500 }}>6 mois de retard</strong> et jusqu'à <strong style={{ color: '#f2efe9', fontWeight: 500 }}>15 000€.</strong>
-          </p>
-          <p style={{ fontSize: 15, color: '#f2efe9', marginBottom: 28 }}>
-            PermitAI à 29€/mois — <span style={{ color: '#4ade80', fontWeight: 500 }}>60× moins cher que l'alternative.</span>
-          </p>
-
-          {/* TOGGLE */}
-          <div style={{ display: 'inline-flex', background: '#0c0c16', border: '0.5px solid #1e1e2c', borderRadius: 10, padding: 3, gap: 2, marginBottom: isAnnual ? 12 : 44 }}>
-            <button onClick={() => setBilling('monthly')} style={{ padding: '9px 24px', background: !isAnnual ? '#14141e' : 'transparent', color: !isAnnual ? '#f2efe9' : '#5a5650', borderRadius: 7, fontSize: 12, fontWeight: !isAnnual ? 500 : 400, border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-              Mensuel
-            </button>
-            <button onClick={() => setBilling('annual')} style={{ padding: '9px 24px', background: isAnnual ? '#14141e' : 'transparent', color: isAnnual ? '#f2efe9' : '#5a5650', borderRadius: 7, fontSize: 12, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: isAnnual ? 500 : 400, fontFamily: "'DM Sans', sans-serif" }}>
-              Annuel
-              <span style={{ background: '#a07820', color: '#fff', fontSize: 9, padding: '2px 8px', borderRadius: 20, fontWeight: 700, letterSpacing: '.3px' }}>-30%</span>
-            </button>
-          </div>
-          {isAnnual && (
-            <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 44 }}>
-              Économisez 30% sur tous les plans avec la facturation annuelle
-            </div>
-          )}
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 500, marginBottom: 8 }}>Paiement unique <em style={{ color: '#e8b420' }}>sans engagement</em></h2>
+          <p style={{ fontSize: 13, color: '#8d887f' }}>Pour 1 projet ponctuel — payez seulement ce dont vous avez besoin.</p>
         </div>
-      </div>
 
-      {/* ── PLANS ── */}
-      <div style={{ padding: '0 36px 52px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, maxWidth: 1280, margin: '0 auto' }}>
-        {PLANS.map((plan) => {
-          const price  = isAnnual ? plan.annualTotal    : plan.monthlyPrice;
-          const orig   = isAnnual ? plan.annualOrig     : plan.monthlyOrig;
-          const equiv  = isAnnual ? plan.annualMonthly  : null;
-          const pct    = isAnnual ? plan.annualPct      : 0;
-          const isHot  = plan.popular;
-          const ckColor = isHot ? '#e8b420' : '#a07820';
-          const fcol    = isHot ? '#8d887f' : '#5a5650';
-
-          return (
-            <div key={plan.id} style={{
-              border: isHot ? '1.5px solid rgba(232,180,32,.3)' : '0.5px solid rgba(255,255,255,.05)',
-              borderRadius: 18,
-              padding: '26px 22px',
-              background: isHot ? '#0c0c1c' : '#080810',
-              overflow: 'hidden',
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          {ONE_SHOT_PRODUCTS.map(p => (
+            <div key={p.id} style={{
+              background: '#0c0c18',
+              border: `0.5px solid ${p.recommande ? 'rgba(160,120,32,.4)' : '#1c1c2a'}`,
+              borderRadius: 14,
+              padding: 22,
               position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: isHot ? '0 0 70px rgba(160,120,32,.07)' : 'none',
+              boxShadow: p.recommande ? '0 4px 24px rgba(160,120,32,.15)' : 'none',
             }}>
-              {/* TOP LINE PRO */}
-              {isHot && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #a07820, #e8b420)' }} />}
-
-              {/* BADGE */}
-              {isHot && (
-                <div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', background: '#a07820', color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 14px', borderRadius: 20, whiteSpace: 'nowrap', letterSpacing: '.5px' }}>
-                  ⭐ Le plus populaire
+              {p.recommande && (
+                <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', padding: '3px 12px', background: 'linear-gradient(90deg, #a07820, #c4960a)', borderRadius: 20, fontSize: 10, color: '#fff', fontWeight: 700, letterSpacing: '.4px' }}>
+                  RECOMMANDÉ
                 </div>
               )}
-
-              {/* NOM + SEGMENT */}
-              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 21, fontWeight: 500, color: '#f2efe9', letterSpacing: -.2, marginBottom: 3, marginTop: isHot ? 18 : 0 }}>{plan.name}</div>
-              <div style={{ fontSize: 11, color: '#3e3a34', marginBottom: 18 }}>{plan.segment}</div>
-
-              {/* PRIX */}
-              {plan.customPrice ? (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: '#e8b420', fontWeight: 500, letterSpacing: -1, lineHeight: 1, marginBottom: 4 }}>{plan.customPrice}</div>
-                  <div style={{ fontSize: 11, color: '#5a5650' }}>Tarif négocié selon volume</div>
-                </div>
-              ) : plan.id === 'free' ? (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: 48, color: '#f2efe9', fontWeight: 500, letterSpacing: -1.4, lineHeight: 1, marginBottom: 3 }}>0€</div>
-                  <div style={{ fontSize: 11, color: '#3e3a34' }}>Pour découvrir sans engagement</div>
-                </div>
-              ) : !isAnnual ? (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 4 }}>
-                    <span style={{ fontFamily: "'Fraunces', serif", fontSize: 48, color: '#e8b420', fontWeight: 500, letterSpacing: -1.4, lineHeight: 1 }}>{price}€</span>
-                    <span style={{ fontFamily: "'Fraunces', serif", fontSize: 20, color: '#252535', textDecoration: 'line-through', fontWeight: 400 }}>{orig}€</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#5a5650' }}>/mois · sans engagement</div>
-                </div>
-              ) : (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-                        <span style={{ fontFamily: "'Fraunces', serif", fontSize: 48, color: '#e8b420', fontWeight: 500, letterSpacing: -1.4, lineHeight: 1 }}>{fmt(price)}€</span>
-                        <span style={{ fontFamily: "'Fraunces', serif", fontSize: 20, color: '#252535', textDecoration: 'line-through', fontWeight: 400 }}>{fmt(orig)}€</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: '#5a5650' }}>/an · soit <span style={{ color: '#4ade80', fontWeight: 500 }}>{equiv}€/mois</span></div>
-                    </div>
-                    <div style={{ background: 'rgba(232,180,32,.12)', border: '0.5px solid rgba(232,180,32,.28)', borderRadius: 20, padding: '4px 10px', fontSize: 11, color: '#e8b420', fontWeight: 700, marginTop: 5, flexShrink: 0 }}>-{pct}%</div>
-                  </div>
-                </div>
-              )}
-
-              {/* BONUS */}
-              {plan.bonus && (
-                isAnnual ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px', background: 'linear-gradient(90deg, rgba(74,222,128,.09), rgba(74,222,128,.04))', border: '0.5px solid rgba(74,222,128,.22)', borderRadius: 9, marginBottom: 16 }}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                      <circle cx="7" cy="7" r="6" fill="rgba(74,222,128,.15)" stroke="rgba(74,222,128,.32)" strokeWidth="1" />
-                      <path d="M4.5 7l2 2L9.5 5" stroke="#4ade80" strokeWidth="1.3" strokeLinecap="round" />
-                    </svg>
-                    <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 500 }}>{plan.bonus}</span>
-                  </div>
-                ) : (
-                  <div style={{ padding: '7px 12px', borderLeft: `2px solid ${isHot ? 'rgba(232,180,32,.45)' : 'rgba(160,120,32,.35)'}`, background: isHot ? 'rgba(232,180,32,.04)' : 'rgba(160,120,32,.03)', borderRadius: '0 7px 7px 0', fontSize: 11, color: isHot ? '#c4960a' : '#a07820', fontStyle: 'italic', marginBottom: 16 }}>
-                    {plan.bonus}
-                  </div>
-                )
-              )}
-              {!plan.bonus && <div style={{ height: 14 }} />}
-
-              {/* SÉPARATEUR */}
-              <div style={{ height: '0.5px', background: isHot ? 'rgba(232,180,32,.12)' : '#1a1a24', marginBottom: 14 }} />
-
-              {/* FEATURES */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {plan.features.map((f, j) => {
-                  const isIA = f.startsWith('⭐');
-                  return (
-                    <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: plan.id === 'free' ? '#5a5650' : isIA ? '#e8b420' : fcol, fontWeight: isIA ? 600 : 400, lineHeight: 1.45 }}>
-                      {isIA ? <StarCheckIcon /> : <CheckIcon color={plan.id === 'free' ? '#3a3a4a' : ckColor} />}
-                      <span>{isIA ? 'IA Premium' : f}</span>
-                    </div>
-                  );
-                })}
-                {plan.locked.length > 0 && (
-                  <>
-                    <div style={{ height: '0.5px', background: '#1a1a24', margin: '4px 0' }} />
-                    {plan.locked.map((f, j) => (
-                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#1a1a2c' }}>
-                        <CrossIcon /><span>{f}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
+              <div style={{ fontSize: 28, marginBottom: 10 }}>{p.emoji}</div>
+              <div style={{ display: 'inline-block', padding: '3px 9px', borderRadius: 5, background: 'rgba(74,222,128,.08)', color: '#4ade80', fontSize: 9, fontWeight: 700, letterSpacing: '.3px', marginBottom: 10 }}>
+                PAIEMENT UNIQUE
               </div>
-
-              {/* CTA */}
-              <button
-                onClick={() => handleSubscribe(plan.id, plan.name)}
-                disabled={loading}
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#f2efe9', marginBottom: 4, lineHeight: 1.3 }}>{p.titre}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                {p.prixBarre && <span style={{ fontSize: 16, color: '#5a5650', textDecoration: 'line-through' }}>{p.prixBarre}€</span>}
+                <span style={{ fontFamily: "'Fraunces', serif", fontSize: 36, fontWeight: 500, color: p.recommande ? '#e8b420' : '#f2efe9', lineHeight: 1 }}>{p.prix}€</span>
+              </div>
+              <div style={{ fontSize: 10, color: '#a07820', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.3px' }}>{p.badge}</div>
+              <div style={{ fontSize: 12, color: '#8d887f', lineHeight: 1.55, marginBottom: 18, minHeight: 50 }}>{p.desc}</div>
+              <button onClick={() => handleOneShot(p.id)} disabled={loading === p.id}
                 style={{
-                  width: '100%', marginTop: 20,
-                  padding: isHot ? '14px 0' : '12px 0',
-                  background: plan.ctaStyle === 'primary' ? 'linear-gradient(90deg, #a07820, #c4960a)' : 'transparent',
-                  border: plan.ctaStyle === 'primary' ? 'none' : `0.5px solid ${plan.id === 'free' ? '#1c1c2a' : 'rgba(160,120,32,.3)'}`,
-                  borderRadius: 10,
-                  color: plan.ctaStyle === 'primary' ? '#fff' : plan.id === 'free' ? '#3e3a34' : '#c4960a',
-                  fontSize: isHot ? 13 : 12,
-                  fontWeight: isHot ? 600 : 500,
-                  fontFamily: "'DM Sans', sans-serif",
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.6 : 1,
-                }}
-              >
-                {loading ? 'Chargement...' : plan.cta}
+                  width: '100%',
+                  padding: '11px 0',
+                  background: p.recommande ? 'linear-gradient(90deg, #a07820, #c4960a)' : '#1a1a28',
+                  border: p.recommande ? 'none' : '0.5px solid #2a2a38',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: loading === p.id ? 'wait' : 'pointer',
+                  fontFamily: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  opacity: loading === p.id ? 0.6 : 1,
+                }}>
+                {loading === p.id ? 'Chargement…' : 'Acheter maintenant →'}
               </button>
-              {plan.showSub && (
-                <div style={{ textAlign: 'center', marginTop: 7, fontSize: 10, color: '#3e3a34' }}>
-                  Sans engagement · Résiliation en 1 clic
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── GARANTIES ── */}
-      <div style={{ padding: '0 52px 48px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ background: '#09090f', border: '0.5px solid #1c1c2a', borderRadius: 13, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', overflow: 'hidden' }}>
-          {GUARANTEES.map((g, i) => (
-            <div key={i} style={{ padding: 16, borderRight: i < 4 ? '0.5px solid #1c1c2a' : 'none', display: 'flex', alignItems: 'center', gap: 9 }}>
-              <div style={{ fontSize: 17, flexShrink: 0 }}>{g.icon}</div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 500, color: '#f2efe9', marginBottom: 1 }}>{g.title}</div>
-                <div style={{ fontSize: 10, color: '#3e3a34' }}>{g.sub}</div>
-              </div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* ── COMPARAISON ── */}
-      <div style={{ padding: '0 52px 52px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ fontSize: 10, color: '#a07820', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 600, marginBottom: 8 }}>COMPARAISON</div>
-        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 28, fontWeight: 500, color: '#f2efe9', letterSpacing: -.4, marginBottom: 24 }}>PermitAI vs la méthode classique</h2>
-        <div style={{ border: '0.5px solid #1c1c2a', borderRadius: 12, overflow: 'hidden', background: '#09090f', marginBottom: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '10px 20px', borderBottom: '0.5px solid #1c1c2a' }}>
-            {['CRITÈRE', 'PERMITAI PRO', 'ARCHITECTE', 'SERVICE URBANISME'].map((h, i) => (
-              <div key={i} style={{ fontSize: 10, color: i === 1 ? '#a07820' : '#3e3a34', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 500 }}>{h}</div>
+      {/* ===== ABONNEMENTS ===== */}
+      <section style={{ padding: '60px 36px', borderTop: '0.5px solid #1c1c2a', maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 500, marginBottom: 8 }}>Abonnements <em style={{ color: '#e8b420' }}>récurrents</em></h2>
+          <p style={{ fontSize: 13, color: '#8d887f', marginBottom: 22 }}>Pour les usages réguliers : pros et particuliers multi-projets.</p>
+
+          {/* Profile selector */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 4, background: '#0c0c18', border: '0.5px solid #1c1c2a', borderRadius: 12, marginBottom: 18 }}>
+            <span style={{ fontSize: 11, color: '#5a5650', padding: '0 10px' }}>Je suis :</span>
+            {PROFILES.map(p => (
+              <button key={p.id} onClick={() => setProfile(p.id)}
+                style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500, background: profile === p.id ? '#a07820' : 'transparent', color: profile === p.id ? '#fff' : '#8d887f', border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+                {p.label}
+              </button>
             ))}
           </div>
-          {COMPARISON.map((row, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '13px 20px', borderBottom: i < COMPARISON.length - 1 ? '0.5px solid #111118' : 'none', background: i % 2 !== 0 ? 'rgba(255,255,255,.01)' : 'transparent' }}>
-              <div style={{ fontSize: 13, color: '#8d887f' }}>{row[0]}</div>
-              <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6l2.5 2.5L9 4" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                {row[1]}
-              </div>
-              <div style={{ fontSize: 12, color: '#3e3a34' }}>{row[2]}</div>
-              <div style={{ fontSize: 12, color: '#3e3a34' }}>{row[3]}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-          {[['94%', 'des dossiers acceptés avec PermitAI', '#4ade80'], ['4 800+', 'utilisateurs actifs en France', '#e8b420'], ['€3 200', 'économies moyennes par refus évité', '#e8b420']].map((s, i) => (
-            <div key={i} style={{ border: '0.5px solid #1c1c2a', borderRadius: 10, padding: '20px 22px', background: '#09090f', display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 30, color: s[2], fontWeight: 500, letterSpacing: -.5, flexShrink: 0 }}>{s[0]}</div>
-              <div style={{ fontSize: 12, color: '#5a5650', lineHeight: 1.5 }}>{s[1]}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* ── FAQ 3 — GRILLE 2×3 ── */}
-      <div style={{ padding: '0 52px 56px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ fontSize: 10, color: '#a07820', textTransform: 'uppercase', letterSpacing: '1.4px', fontWeight: 600, marginBottom: 10 }}>FAQ</div>
-          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 36, fontWeight: 500, color: '#f2efe9', letterSpacing: -.6, lineHeight: 1.08, marginBottom: 8 }}>Questions fréquentes.</h2>
-          <p style={{ fontSize: 13, color: '#3e3a34', fontWeight: 300 }}>
-            Une question ? <a href="mailto:contact@permitai.eu" style={{ color: '#a07820', textDecoration: 'none' }}>contact@permitai.eu</a>
-          </p>
+          {/* Annual toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 4 }}>
+            <span style={{ fontSize: 12, color: !annual ? '#f2efe9' : '#5a5650' }}>Mensuel</span>
+            <button onClick={() => setAnnual(!annual)} style={{ width: 44, height: 24, borderRadius: 12, background: annual ? '#a07820' : '#1c1c2a', border: 'none', position: 'relative', cursor: 'pointer', transition: 'background .2s' }}>
+              <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: annual ? 23 : 3, transition: 'left .2s' }} />
+            </button>
+            <span style={{ fontSize: 12, color: annual ? '#f2efe9' : '#5a5650', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Annuel
+              <span style={{ background: '#4ade80', color: '#06060e', fontSize: 9, padding: '2px 7px', borderRadius: 20, fontWeight: 700 }}>-25%</span>
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {FAQ_ITEMS.map((f, i) => (
-            <div
-              key={i}
-              onClick={() => setOpenFaq(openFaq === i ? null : i)}
-              style={{
-                background: openFaq === i ? 'linear-gradient(175deg, #0c0c1c, rgba(160,120,32,.04))' : '#09090f',
-                border: `0.5px solid ${openFaq === i ? 'rgba(160,120,32,.28)' : '#1a1a26'}`,
-                borderRadius: 14,
-                padding: '20px 22px',
-                cursor: 'pointer',
-                transition: 'all .2s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                {/* NUMÉRO */}
-                <div style={{ fontFamily: "'Fraunces', serif", fontSize: 26, color: openFaq === i ? 'rgba(160,120,32,.4)' : 'rgba(255,255,255,.05)', fontWeight: 500, lineHeight: 1, flexShrink: 0, letterSpacing: -1, minWidth: 32, transition: 'color .2s' }}>
-                  {String(i + 1).padStart(2, '0')}
+        {/* Plans grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${plans.length}, 1fr)`, gap: 14, maxWidth: plans.length === 1 ? 480 : '100%', margin: '0 auto' }}>
+          {plans.map(plan => (
+            <div key={plan.id} style={{
+              background: '#0c0c18',
+              border: `0.5px solid ${plan.recommande ? '#a07820' : '#1c1c2a'}`,
+              borderRadius: 14,
+              padding: 26,
+              position: 'relative',
+              boxShadow: plan.recommande ? '0 8px 32px rgba(160,120,32,.2)' : 'none',
+            }}>
+              {plan.recommande && (
+                <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 14px', background: 'linear-gradient(90deg, #a07820, #c4960a)', borderRadius: 20, fontSize: 10, color: '#fff', fontWeight: 700, letterSpacing: '.5px' }}>
+                  RECOMMANDÉ
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: openFaq === i ? '#f2efe9' : '#8d887f', lineHeight: 1.45, marginBottom: openFaq === i ? 10 : 0, transition: 'color .2s' }}>
-                    {f.q}
+              )}
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 500, color: '#f2efe9', marginBottom: 6 }}>{plan.name}</div>
+              {plan.price !== null ? (
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontFamily: "'Fraunces', serif", fontSize: 38, fontWeight: 500, color: plan.recommande ? '#e8b420' : '#f2efe9', lineHeight: 1 }}>
+                      {annual ? plan.priceAnnual : plan.price}€
+                    </span>
+                    <span style={{ fontSize: 12, color: '#8d887f' }}>/mois</span>
                   </div>
-                  {openFaq === i && (
-                    <div style={{ fontSize: 12, color: '#5a5650', lineHeight: 1.65, fontWeight: 300 }}>{f.a}</div>
-                  )}
+                  {annual && <div style={{ fontSize: 10, color: '#4ade80', marginTop: 4, fontWeight: 600 }}>Facturé {plan.priceAnnual * 12}€/an</div>}
                 </div>
-                <div style={{ fontSize: 16, color: openFaq === i ? '#a07820' : '#2a2a38', flexShrink: 0, fontWeight: 300, marginTop: 2 }}>
-                  {openFaq === i ? '−' : '+'}
+              ) : (
+                <div style={{ marginBottom: 18 }}>
+                  <span style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 500, color: '#e8b420' }}>Sur devis</span>
+                  <div style={{ fontSize: 11, color: '#8d887f', marginTop: 4 }}>Tarif négocié au volume</div>
                 </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
+                {plan.features.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: '#c4bfb8' }}>
+                    <Check size={14} color="#4ade80" style={{ flexShrink: 0, marginTop: 2 }} /> {f}
+                  </div>
+                ))}
               </div>
+              {plan.id === 'enterprise' ? (
+                <Link href="/enterprise"><button style={{ width: '100%', padding: '11px 0', background: 'transparent', border: '0.5px solid #1c1c2a', borderRadius: 8, color: '#f2efe9', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Demander un devis →</button></Link>
+              ) : (
+                <Link href="/sign-up"><button style={{ width: '100%', padding: '11px 0', background: plan.recommande ? 'linear-gradient(90deg, #a07820, #c4960a)' : '#1a1a28', border: plan.recommande ? 'none' : '0.5px solid #2a2a38', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Choisir {plan.name}</button></Link>
+              )}
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* ── CTA FINAL ── */}
-      <div style={{ margin: '0 52px 60px', maxWidth: 1200 - 104, marginLeft: 'auto', marginRight: 'auto' }}>
-        <div style={{ background: 'linear-gradient(135deg, #0c0c1c, rgba(160,120,32,.05))', border: '0.5px solid rgba(160,120,32,.15)', borderRadius: 20, padding: '56px 52px', display: 'grid', gridTemplateColumns: '1fr auto', gap: 40, alignItems: 'center' }}>
-          <div>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 38, fontWeight: 500, color: '#f2efe9', letterSpacing: -.8, lineHeight: 1.06, marginBottom: 8 }}>
-              Commencez gratuitement.<br /><em style={{ fontStyle: 'italic', color: '#e8b420' }}>Sans carte bancaire.</em>
-            </h2>
-            <p style={{ fontSize: 13, color: '#3e3a34', fontWeight: 300 }}>1 analyse offerte · 3 minutes · Résiliation en 1 clic</p>
-          </div>
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
-            <Link href="/sign-up">
-              <button style={{ padding: '14px 32px', background: 'linear-gradient(90deg, #a07820, #c4960a)', border: 'none', borderRadius: 11, color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
-                Essayer gratuitement →
-              </button>
-            </Link>
-            <span style={{ fontSize: 10, color: '#1e1e28' }}>4 800+ utilisateurs · 94% accordés</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── FOOTER ── */}
-      <footer style={{ borderTop: '0.5px solid #111118', padding: '44px 52px 28px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 36 }}>
-            <div style={{ maxWidth: 240 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
-                <LogoMark />
-                <span style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 500, color: '#f2efe9' }}>PermitAI</span>
+      {/* ===== TABLEAU COMPARATIF ===== */}
+      <section style={{ padding: '60px 36px', borderTop: '0.5px solid #1c1c2a', maxWidth: 1280, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 500, textAlign: 'center', marginBottom: 30 }}>PermitAI <em style={{ color: '#e8b420' }}>vs</em> les alternatives</h2>
+        <div style={{ background: '#0c0c18', border: '0.5px solid #1c1c2a', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr 1fr 1fr 1fr', borderBottom: '0.5px solid #1c1c2a', background: '#0a0a14' }}>
+            {['', 'PermitAI Pro', 'Géomètre', 'Architecte', 'Cabinet urbanisme', 'Seul'].map((h, i) => (
+              <div key={i} style={{ padding: '14px 16px', fontSize: 11, color: i === 1 ? '#e8b420' : '#8d887f', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.4px', borderRight: i < 5 ? '0.5px solid #1c1c2a' : 'none', textAlign: i === 0 ? 'left' : 'center' }}>
+                {h}
               </div>
-              <p style={{ fontSize: 12, color: '#2a2a38', lineHeight: 1.7, fontWeight: 300 }}>La plateforme IA pour les permis de construire en France.</p>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 48 }}>
-              {[
-                ['Produit', ['Analyse PLU', 'CERFA', 'Dépôt mairie', 'Tarifs']],
-                ['Support', ['Documentation', 'Blog', 'Support']],
-                ['Légal', ['CGU', 'Confidentialité', 'Mentions légales']],
-              ].map((col, i) => (
-                <div key={i}>
-                  <div style={{ fontSize: 9.5, color: '#1e1e28', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 12 }}>{col[0]}</div>
-                  {col[1].map((l) => (
-                    <div key={l} style={{ fontSize: 12, color: '#2a2a38', padding: '3.5px 0' }}>{l}</div>
-                  ))}
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
-          <div style={{ borderTop: '0.5px solid #111118', paddingTop: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#1e1e28' }}>© 2025 PermitAI</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }} />
-              <span style={{ fontSize: 10, color: '#2a2a38' }}>Systèmes opérationnels</span>
+          {COMPARATIF.map((row, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr 1fr 1fr 1fr', borderBottom: i < COMPARATIF.length - 1 ? '0.5px solid #111118' : 'none' }}>
+              <div style={{ padding: '12px 16px', fontSize: 12, color: '#f2efe9', fontWeight: 500, borderRight: '0.5px solid #1c1c2a' }}>{row.feature}</div>
+              {['permitai', 'geometre', 'architecte', 'cabinet', 'seul'].map((k, j) => {
+                const v = row[k];
+                return (
+                  <div key={k} style={{ padding: '12px 16px', textAlign: 'center', borderRight: j < 4 ? '0.5px solid #1c1c2a' : 'none', background: k === 'permitai' ? 'rgba(160,120,32,.04)' : 'transparent' }}>
+                    {typeof v === 'boolean' ? (
+                      v ? <Check size={16} color="#4ade80" style={{ display: 'inline' }} /> : <X size={16} color="#5a5650" style={{ display: 'inline' }} />
+                    ) : (
+                      <span style={{ fontSize: 12, color: k === 'permitai' ? '#e8b420' : '#c4bfb8', fontWeight: k === 'permitai' ? 600 : 400 }}>{v}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <span style={{ fontSize: 11, color: '#1e1e28' }}>contact@permitai.eu</span>
-          </div>
+          ))}
         </div>
-      </footer>
+      </section>
 
+      {/* ===== MENTIONS LÉGALES ===== */}
+      <section style={{ padding: '50px 36px', borderTop: '0.5px solid #1c1c2a', maxWidth: 880, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 24, fontWeight: 500, marginBottom: 18, textAlign: 'center' }}>À savoir avant d'acheter</h2>
+        <div style={{ display: 'grid', gap: 10 }}>
+          {[
+            { e: '⚖️', t: 'Architecte obligatoire pour les projets > 150m² de surface de plancher (Loi du 3 janvier 1977).' },
+            { e: '🌱', t: 'Étude thermique RE2020 obligatoire pour toute construction neuve.' },
+            { e: '🏛️', t: 'Accord ABF requis pour les projets en périmètre monument historique.' },
+          ].map((m, i) => (
+            <div key={i} style={{ display: 'flex', gap: 12, padding: '14px 16px', background: '#0c0c18', border: '0.5px solid #1c1c2a', borderRadius: 10 }}>
+              <span style={{ fontSize: 18 }}>{m.e}</span>
+              <span style={{ fontSize: 12, color: '#c4bfb8', lineHeight: 1.6 }}>{m.t}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: '#5a5650', textAlign: 'center', marginTop: 18, fontStyle: 'italic' }}>
+          PermitAI prépare votre dossier complet — certaines validations restent à la charge de professionnels agréés.
+        </p>
+      </section>
+
+      {/* ===== FAQ ===== */}
+      <section style={{ padding: '50px 36px 80px', borderTop: '0.5px solid #1c1c2a', maxWidth: 720, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 500, marginBottom: 24, textAlign: 'center' }}>Questions fréquentes</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {FAQ.map((item, i) => (
+            <div key={i} style={{ background: '#0c0c18', border: '0.5px solid #1c1c2a', borderRadius: 10, overflow: 'hidden' }}>
+              <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                style={{ width: '100%', padding: '16px 20px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit', textAlign: 'left' }}>
+                <span style={{ fontSize: 13, color: '#f2efe9', fontWeight: 500 }}>{item.q}</span>
+                <span style={{ color: '#a07820', fontSize: 18, transform: openFaq === i ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>+</span>
+              </button>
+              {openFaq === i && (
+                <div style={{ padding: '0 20px 18px', fontSize: 12, color: '#8d887f', lineHeight: 1.7 }}>
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

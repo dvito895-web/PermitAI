@@ -47,7 +47,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'PermitAI — Analyse PLU & Permis de construire en 3 minutes',
-    description: 'PermitAI indexe les 36 000 Plans Locaux d\'Urbanisme de France.',
+    description: 'PermitAI indexe les 34 970 Plans Locaux d\'Urbanisme de France.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -97,7 +97,7 @@ export default function RootLayout({ children }) {
                   highPrice: '199',
                   offerCount: '4',
                 },
-                description: 'PermitAI indexe les 36 000 Plans Locaux d\'Urbanisme de France, génère vos CERFA officiels et dépose votre dossier directement en mairie.',
+                description: 'PermitAI indexe les 34 970 Plans Locaux d\'Urbanisme de France, génère vos CERFA officiels et dépose votre dossier directement en mairie.',
                 aggregateRating: {
                   '@type': 'AggregateRating',
                   ratingValue: '4.8',

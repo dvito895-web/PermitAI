@@ -21,12 +21,12 @@ const STATS = [
   { value: '500 000', label: 'permis / an en France' },
   { value: '30%', label: 'refusés au 1er dépôt' },
   { value: '6 mois', label: 'retard par refus' },
-  { value: '36 000', label: 'PLU indexés' },
+  { value: '34 970', label: 'PLU indexés' },
   { value: '€15 000', label: 'coût max d\'un refus' },
 ];
 
 const FEATURES = [
-  { icon: MapPin,     title: 'Analyse PLU instantanée',     desc: '36 000 communes indexées. L\'IA vérifie chaque règle applicable à votre adresse en 3 minutes avec citations exactes du PLU.' },
+  { icon: MapPin,     title: 'Analyse PLU instantanée',     desc: '34 970 communes indexées. L\'IA vérifie chaque règle applicable à votre adresse en 3 minutes avec citations exactes du PLU.' },
   { icon: FileText,   title: '13 CERFA pré-remplis',        desc: 'PC MI, DP MI, CU, DOC, DAACT et 8 autres. Remplissage automatique + référence cadastrale via API IGN officielle.' },
   { icon: Upload,     title: 'Dépôt numérique en mairie',   desc: 'PLAT\'AU pour les 20 000+ mairies raccordées. LRAR La Poste pour les autres. Accusé de réception archivé automatiquement.' },
   { icon: FileText,   title: 'Notice descriptive IA',       desc: 'L\'IA rédige la notice PC1/DP1, le plan de situation et tous les documents obligatoires selon votre projet.' },
@@ -101,7 +101,7 @@ const KPIS = [
 const PARTNERS = [
   { 
     name: 'Géoportail Urbanisme', 
-    desc: 'PLU officiels · 36 000 communes',
+    desc: 'PLU officiels · 34 970 communes',
     badge: 'Ministère du Logement',
     logo: (
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
@@ -293,7 +293,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', gap: 2 }}>
             <Link href="/analyse" className="nav-link">Analyse PLU</Link>
             <Link href="/cerfa" className="nav-link">CERFA</Link>
-            <Link href="/calculateurs" className="nav-link">Calculateurs</Link>
+            <Link href="/#comment-ca-marche" className="nav-link">Comment ça marche</Link>
             <Link href="/blog" className="nav-link">Blog</Link>
             <Link href="/tarifs" className="nav-link">Tarifs</Link>
           </div>
@@ -323,7 +323,7 @@ export default function LandingPage() {
           <div>
             <div className="badge-premium animate-fade-in-up" style={{ marginBottom: 22 }}>
               <div className="pulse-dot" style={{ width: 5, height: 5, borderRadius: '50%', background: '#a07820' }} />
-              36 000 PLU · Données Géoportail officielles
+              34 970 PLU · Données Géoportail officielles
             </div>
             <h1 className="hero-title animate-fade-in-up animate-delay-1" style={{ marginBottom: 18 }}>
               Votre permis de<br />construire. <em>Sans les<br />mauvaises surprises.</em>
@@ -599,7 +599,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── FONCTIONNALITÉS ── */}
-      <section id="fonctionnalites" style={{ background: '#06060e', borderBottom: '0.5px solid #1c1c2a' }}>
+      <section id="comment-ca-marche" style={{ background: '#06060e', borderBottom: '0.5px solid #1c1c2a' }}>
+        <div id="fonctionnalites" style={{ scrollMarginTop: 80 }} />
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Fonctionnalités</div>
           <h2 className="section-title" style={{ marginBottom: 6 }}>Tout le processus. <em>Automatisé.</em></h2>

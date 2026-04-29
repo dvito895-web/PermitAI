@@ -24,6 +24,9 @@ const isPublicRoute = createRouteMatcher([
   '/promoteur',
   '/particulier',
   '/enterprise',
+  '/comparateur',
+  '/affiliation',
+  '/temoignages',
   '/mentions-legales',
   '/politique-confidentialite',
   '/cookies',
@@ -39,6 +42,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/cerfa(.*)',
   '/api/plu/query(.*)',
   '/api/plu/demo(.*)',
+  '/api/stripe/one-time(.*)',
+  '/api/rapport/(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
