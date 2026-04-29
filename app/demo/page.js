@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Building2, ArrowLeft, ArrowRight, Loader2, CheckCircle2, Lock, FileText } from 'lucide-react';
-import AddressInput from '../../components/AddressInput';
 
 const LOADING_STEPS = [
   'Identification commune…',
@@ -17,6 +16,33 @@ export default function DemoPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [result, setResult] = useState(null);
+
+  // Address autocomplete inline state
+  const [addrSuggestions, setAddrSuggestions] = useState([]);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const addrRef = useRef(null);
+  const addrTimer = useRef(null);
+
+  useEffect(() => {
+    function closeAddr(e) { if (addrRef.current && !addrRef.current.contains(e.target)) setAddrOpen(false); }
+    document.addEventListener('mousedown', closeAddr);
+    return () => document.removeEventListener('mousedown', closeAddr);
+  }, []);
+
+  function handleAddrChange(val) {
+    setAdresse(val);
+    clearTimeout(addrTimer.current);
+    if (val.length < 1) { setAddrSuggestions([]); setAddrOpen(false); return; }
+    addrTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=6&autocomplete=1`);
+        const data = await res.json();
+        const s = data.features?.map(f => ({ label: f.properties.label, context: f.properties.context })) || [];
+        setAddrSuggestions(s);
+        setAddrOpen(s.length > 0);
+      } catch(e) { setAddrSuggestions([]); }
+    }, 200);
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -99,7 +125,33 @@ export default function DemoPage() {
           <form onSubmit={handleSubmit} style={{ background: '#0c0c18', border: '0.5px solid #1c1c2a', borderRadius: 16, padding: 30, marginBottom: 24 }}>
             <label style={{ display: 'block', fontSize: 11, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8, fontWeight: 500 }}>Adresse du projet</label>
             <div style={{ marginBottom: 18 }}>
-              <AddressInput value={adresse} onChange={setAdresse} placeholder="Tapez une adresse en France…" />
+              <div ref={addrRef} style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 2 }}>📍</span>
+                <input
+                  type="text"
+                  value={adresse}
+                  onChange={e => handleAddrChange(e.target.value)}
+                  onFocus={() => adresse.length >= 1 && setAddrOpen(addrSuggestions.length > 0)}
+                  placeholder="Tapez une adresse en France…"
+                  autoComplete="off"
+                  style={{ width: '100%', background: '#0a0a14', border: '0.5px solid #1c1c2a', borderRadius: 10, padding: '13px 16px 13px 38px', fontSize: 13, color: '#f2efe9', fontFamily: 'inherit', outline: 'none' }}
+                />
+                {addrOpen && addrSuggestions.length > 0 && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 9999, background: '#0e0e1a', border: '0.5px solid #1c1c2a', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,.8)' }}>
+                    {addrSuggestions.map((s, i) => (
+                      <button key={i} type="button"
+                        onMouseDown={e => { e.preventDefault(); setAdresse(s.label); setAddrOpen(false); setAddrSuggestions([]); }}
+                        style={{ width: '100%', display: 'flex', flexDirection: 'column', padding: '10px 14px', background: 'transparent', border: 'none', borderBottom: i < addrSuggestions.length-1 ? '0.5px solid #111118' : 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(160,120,32,.08)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <span style={{ fontSize: 12.5, color: '#f2efe9', fontWeight: 500 }}>{s.label}</span>
+                        <span style={{ fontSize: 10, color: '#3e3a34', marginTop: 2 }}>{s.context}</span>
+                      </button>
+                    ))}
+                    <div style={{ padding: '5px 14px', fontSize: 10, color: '#1a1a28', borderTop: '0.5px solid #111118' }}>api-adresse.data.gouv.fr · Données officielles</div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <label style={{ display: 'block', fontSize: 11, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8, fontWeight: 500 }}>Description du projet (optionnel)</label>
