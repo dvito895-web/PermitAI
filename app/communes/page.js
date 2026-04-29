@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { Building2, Search, MapPin } from 'lucide-react';
 
 export const metadata = {
-  title: '36 000 Communes Françaises - PLU Indexés | PermitAI',
-  description: 'Consultez le Plan Local d\'Urbanisme (PLU) de toutes les communes de France. 36 000 PLU indexés et analysés par IA.',
+  title: '34 970 Communes Françaises - PLU Indexés | PermitAI',
+  description: 'Consultez le Plan Local d\'Urbanisme (PLU) de toutes les communes de France. 34 970 PLU indexés et analysés par IA.',
 };
 
 export default function CommunesPage() {
@@ -24,7 +24,7 @@ export default function CommunesPage() {
       <section className="pt-40 pb-24 px-6">
         <div className="container mx-auto max-w-6xl">
           <h1 className="hero-title mb-6 text-center">
-            36 000 <span className="text-[#e8b420] italic">Communes</span>
+            34 970 <span className="text-[#e8b420] italic">Communes</span>
           </h1>
           <p className="hero-subtitle text-center mb-12 max-w-2xl mx-auto">
             Tous les Plans Locaux d'Urbanisme de France indexés et analysables en 3 minutes
@@ -40,14 +40,14 @@ export default function CommunesPage() {
               />
             </div>
             <p className="text-[13px] text-[#8a857d] mt-4 text-center">
-              Recherche parmi 36 000 communes françaises
+              Recherche parmi 34 970 communes françaises
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-12">
             <div className="card-premium text-center">
               <div className="text-[32px] mb-3">🏛️</div>
-              <div className="text-[24px] font-medium text-[#e8b420] mb-2">36 000</div>
+              <div className="text-[24px] font-medium text-[#e8b420] mb-2">34 970</div>
               <div className="text-[13px] text-[#8a857d]">Communes indexées</div>
             </div>
             <div className="card-premium text-center">

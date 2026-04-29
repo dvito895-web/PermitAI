@@ -18,7 +18,7 @@ const ARTICLES = [
   },
   {
     slug: 'plu-par-commune-france',
-    title: 'Comprendre les PLU par commune en France : 36 000 documents',
+    title: 'Comprendre les PLU par commune en France : 34 970 documents',
     excerpt: 'Comment les PLU varient d\'une commune à l\'autre, où les consulter, comment lire un règlement de zone.',
     date: '2025-06-08',
     readTime: '9 min',

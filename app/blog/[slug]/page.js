@@ -377,7 +377,7 @@ PermitAI analyse votre PLU communal en 3 minutes, vérifie l'emprise au sol, la 
     `,
   },
   'plu-par-commune-france': {
-    title: 'Comprendre les PLU par commune en France : 36 000 documents',
+    title: 'Comprendre les PLU par commune en France : 34 970 documents',
     date: '2025-06-08',
     readTime: '9 min',
     category: 'Guide PLU',
@@ -418,7 +418,7 @@ Depuis 2017, beaucoup d'EPCI ont fusionné les PLU communaux en un PLUi unique p
 - **Carte communale** : ~7 000 communes, document simplifié
 - **RNU (Règlement National d'Urbanisme)** : pour les communes sans PLU ni carte communale
 
-## Comment PermitAI couvre 36 000 communes
+## Comment PermitAI couvre 34 970 communes
 
 PermitAI indexe en continu les PLU publiés sur le Géoportail Urbanisme officiel. Données mises à jour quotidiennement.
     `,

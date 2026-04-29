@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 import { MapPin, Search, ArrowRight, TrendingUp, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 import AddressInput from '../../components/AddressInput';
+import { analyzeLegalConstraints, PIECES_OBLIGATOIRES, UPSELL_SERVICES } from '../../lib/legalEngine';
 
 function LogoMark() {
   return (
@@ -283,6 +284,73 @@ function AnalysePage() {
                     </button>
                   </Link>
                 )}
+
+                {/* === OBLIGATIONS LÉGALES & ALERTES === */}
+                {(() => {
+                  const legal = analyzeLegalConstraints({
+                    surface: parseInt(surface) || 0,
+                    type: projectType,
+                    commune: result.commune,
+                    zone: result.zone,
+                    description: description,
+                  });
+                  return (
+                    <>
+                      <div style={{ marginTop: 18, marginBottom: 10, fontSize: 11, color: '#8d887f', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600 }}>
+                        Obligations légales & alertes
+                      </div>
+                      {legal.alerts.map((alert, i) => {
+                        const palette = alert.niveau === 'obligatoire'
+                          ? { bg: 'rgba(239,68,68,.06)', border: 'rgba(239,68,68,.2)' }
+                          : alert.niveau === 'attention'
+                          ? { bg: 'rgba(232,180,32,.06)', border: 'rgba(232,180,32,.2)' }
+                          : { bg: 'rgba(96,165,250,.06)', border: 'rgba(96,165,250,.2)' };
+                        const upsellSrv = alert.upsell ? UPSELL_SERVICES[alert.upsell.action] : null;
+                        return (
+                          <div key={i} style={{ padding: '12px 14px', background: palette.bg, border: `0.5px solid ${palette.border}`, borderRadius: 10, marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{alert.icone}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: '#f2efe9', marginBottom: 3 }}>
+                                  {alert.niveau === 'obligatoire' && (
+                                    <span style={{ fontSize: 9, background: 'rgba(239,68,68,.15)', color: '#ef4444', padding: '1px 7px', borderRadius: 20, marginRight: 6, fontWeight: 700, letterSpacing: '.3px' }}>OBLIGATOIRE</span>
+                                  )}
+                                  {alert.titre}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#8d887f', lineHeight: 1.55 }}>{alert.texte}</div>
+                                <div style={{ fontSize: 10, color: '#3e3a34', marginTop: 5 }}>📖 {alert.loi}</div>
+                                {alert.upsell && upsellSrv && (
+                                  <a href={upsellSrv.action} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 7, padding: '5px 11px', background: 'rgba(160,120,32,.1)', border: '0.5px solid rgba(160,120,32,.3)', borderRadius: 6, fontSize: 10, color: '#a07820', textDecoration: 'none', fontWeight: 600 }}>
+                                    {alert.upsell.label} →
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Pièces obligatoires */}
+                      {result.cerfa_recommande && PIECES_OBLIGATOIRES[result.cerfa_recommande] && (
+                        <div style={{ marginTop: 14, padding: '12px 14px', background: '#0a0a14', border: '0.5px solid #1c1c2a', borderRadius: 10 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#f2efe9', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                            📎 Pièces obligatoires — CERFA {result.cerfa_recommande}
+                          </div>
+                          {PIECES_OBLIGATOIRES[result.cerfa_recommande].map((p, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', borderBottom: i < PIECES_OBLIGATOIRES[result.cerfa_recommande].length - 1 ? '0.5px solid #111118' : 'none' }}>
+                              <span style={{ fontSize: 11, color: p.obligatoire ? '#4ade80' : '#e8b420', flexShrink: 0, marginTop: 1 }}>{p.obligatoire ? '✓' : '○'}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 11.5, color: '#c4bfb8', fontWeight: 500 }}>{p.code} — {p.nom}</div>
+                                {p.description && <div style={{ fontSize: 10, color: '#3e3a34', marginTop: 2 }}>{p.description}</div>}
+                              </div>
+                              <span style={{ fontSize: 10, color: p.obligatoire ? '#4ade80' : '#e8b420', flexShrink: 0, fontWeight: 500 }}>{p.obligatoire ? 'Obligatoire' : 'Selon cas'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div style={{ height: '100%', minHeight: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center' }}>
@@ -294,7 +362,7 @@ function AnalysePage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                  {['Paris, Lyon, Marseille, Bordeaux', 'Toulouse, Nantes, Rennes, Nice', 'Et 36 000 communes de France'].map((t, i) => (
+                  {['Paris, Lyon, Marseille, Bordeaux', 'Toulouse, Nantes, Rennes, Nice', 'Et 34 970 communes de France'].map((t, i) => (
                     <div key={i} style={{ fontSize: 10, color: '#3e3a34', display: 'flex', alignItems: 'center', gap: 5 }}>
                       <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#a07820' }} />
                       {t}
@@ -309,7 +377,7 @@ function AnalysePage() {
         {/* INFO STRIP */}
         <div style={{ marginTop: 16, background: '#0a0a14', border: '0.5px solid #1c1c2a', borderRadius: 11, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: 32 }}>
-            {[['36 000', 'communes indexées'], ['3 min', 'temps d\'analyse'], ['94%', 'taux acceptation'], ['13', 'CERFA disponibles']].map(([v, l]) => (
+            {[['34 970', 'communes indexées'], ['3 min', 'temps d\'analyse'], ['94%', 'taux acceptation'], ['13', 'CERFA disponibles']].map(([v, l]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontFamily: "'Fraunces', serif", fontSize: 18, color: '#e8b420', fontWeight: 500 }}>{v}</span>
                 <span style={{ fontSize: 11, color: '#3e3a34' }}>{l}</span>
