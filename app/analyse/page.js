@@ -89,7 +89,14 @@ function AnalysePage() {
       try {
         const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=6&autocomplete=1`);
         const data = await res.json();
-        const s = data.features?.map(f => ({ label: f.properties.label, context: f.properties.context })) || [];
+        const s = data.features?.map(f => ({
+          label: f.properties.label,
+          city: f.properties.city,
+          postcode: f.properties.postcode,
+          citycode: f.properties.citycode,
+          context: f.properties.context,
+          coords: f.geometry?.coordinates,
+        })) || [];
         setAddrSuggestions(s);
         setAddrOpen(s.length > 0);
       } catch(e) { setAddrSuggestions([]); }
