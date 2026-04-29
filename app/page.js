@@ -245,6 +245,33 @@ export default function LandingPage() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState(null);
   const [liveCount, setLiveCount] = useState(4847);
+  const [toast, setToast] = useState(null);
+
+  // Live counter increment
+  useEffect(() => {
+    const t = setInterval(() => setLiveCount(p => p + 1), 9000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Toast notifications rotation
+  useEffect(() => {
+    const TOASTS = [
+      "🏠 Marie à Lyon — extension 35m² conforme ✓",
+      "✅ Thomas à Bordeaux — permis accordé",
+      "📋 Cabinet Dupont — CERFA 13406 généré",
+      "🎯 Sophie à Paris — analyse en 2,4 secondes",
+      "🏗 Pierre à Toulouse — projet conforme 94%",
+    ];
+    let i = 0;
+    const showToast = () => {
+      setToast(TOASTS[i % TOASTS.length]);
+      i++;
+      setTimeout(() => setToast(null), 4000);
+    };
+    const t1 = setTimeout(showToast, 5000);
+    const t2 = setInterval(showToast, 35000);
+    return () => { clearTimeout(t1); clearInterval(t2); };
+  }, []);
 
   const handleDemoAnalysis = async (e) => {
     e.preventDefault();
@@ -724,42 +751,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ borderTop: '0.5px solid #1c1c2a', padding: '52px', background: '#06060e' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr', gap: 36, marginBottom: 40 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <LogoMark />
-              <span className="nav-logo-text">PermitAI</span>
-            </div>
-            <p style={{ fontSize: 12, color: '#8d887f', lineHeight: 1.7, maxWidth: 240 }}>
-              La plateforme de référence pour l'analyse des PLU et la gestion des permis de construire en France.
-            </p>
-          </div>
-          {[
-            { title: 'Produit',    links: [['Analyse PLU', '/analyse'], ['CERFA', '/cerfa'], ['Calculateurs', '/calculateurs'], ['Démo', '/demo'], ['Tarifs', '/tarifs']] },
-            { title: 'Métiers',    links: [['Agents immo', '/agent-immobilier'], ['Architectes', '/architecte'], ['Promoteurs', '/promoteur'], ['Particuliers', '/particulier'], ['Enterprise', '/enterprise']] },
-            { title: 'Ressources', links: [['Blog', '/blog'], ['Documentation', '/documentation'], ['Support', '/support'], ['API', '/api-docs'], ['Parrainage', '/parrainage']] },
-            { title: 'Légal',      links: [['Mentions légales', '/mentions-legales'], ['Confidentialité', '/politique-confidentialite'], ['Cookies', '/cookies'], ['CGU', '/cgu']] },
-          ].map((col, i) => (
-            <div key={i}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', color: '#3e3a34', fontWeight: 500, marginBottom: 14 }}>{col.title}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {col.links.map(([label, href]) => (
-                  <Link key={label} href={href} style={{ fontSize: 12.5, color: '#8d887f', transition: 'color .15s' }} onMouseEnter={e => e.currentTarget.style.color = '#f2efe9'} onMouseLeave={e => e.currentTarget.style.color = '#8d887f'}>{label}</Link>
-                ))}
-              </div>
-            </div>
-          ))}
+      {/* Footer global défini dans layout.js */}
+
+      {/* Toast notifications social proof */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, left: 24, zIndex: 9998, background: '#0e0e1a', border: '0.5px solid #1c1c2a', borderRadius: 10, padding: '12px 16px', boxShadow: '0 8px 32px rgba(0,0,0,.6)', fontSize: 12, color: '#f2efe9', maxWidth: 320, animation: 'slideInLeft .3s ease-out' }}>
+          {toast}
         </div>
-        <div style={{ borderTop: '0.5px solid #1c1c2a', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1200, margin: '0 auto' }}>
-          <p style={{ fontSize: 11, color: '#3e3a34' }}>© 2025 PermitAI · contact@permitai.eu</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
-            <span style={{ fontSize: 11, color: '#3e3a34' }}>Systèmes opérationnels</span>
-          </div>
-        </div>
-      </footer>
+      )}
+      <style jsx>{`@keyframes slideInLeft { from { transform: translateX(-120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
     </div>
   );
 }
