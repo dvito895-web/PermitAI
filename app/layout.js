@@ -116,17 +116,39 @@ export default function RootLayout({ children }) {
         </head>
         <body className="antialiased" style={{ fontFamily: 'var(--font-inter)' }}>
           {children}
-          <footer style={{ borderTop: '0.5px solid #1c1c2a', padding: '20px 52px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#06060e', fontFamily: 'sans-serif', flexWrap: 'wrap', gap: 10 }}>
-            <span style={{ fontSize: 11, color: '#3e3a34' }}>© 2025 PermitAI · contact@permitai.eu</span>
-            <div style={{ display: 'flex', gap: 20 }}>
-              <a href="/cgu" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>CGU</a>
-              <a href="/politique-confidentialite" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>Confidentialité</a>
-              <a href="/mentions-legales" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>Mentions légales</a>
-              <a href="/tarifs" style={{ fontSize: 11, color: '#3e3a34', textDecoration: 'none' }}>Tarifs</a>
+          <footer style={{ borderTop: '0.5px solid #1c1c2a', padding: '40px 52px 24px', background: '#06060e', fontFamily: 'var(--font-inter)' }}>
+            <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32, marginBottom: 32 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#f2efe9', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.5px' }}>Produit</div>
+                {[['Analyse PLU', '/analyse'], ['CERFA', '/cerfa'], ['Démo live', '/demo'], ['Tarifs', '/tarifs'], ['Comment ça marche', '/#comment-ca-marche']].map(([label, href]) => (
+                  <a key={href} href={href} style={{ display: 'block', fontSize: 12, color: '#3e3a34', textDecoration: 'none', marginBottom: 7, transition: 'color .15s' }}>{label}</a>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#f2efe9', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.5px' }}>Métiers</div>
+                {[['Agents immobiliers', '/agent-immobilier'], ['Architectes', '/architecte'], ['Promoteurs', '/promoteur'], ['Particuliers', '/particulier'], ['Enterprise', '/enterprise']].map(([label, href]) => (
+                  <a key={href} href={href} style={{ display: 'block', fontSize: 12, color: '#3e3a34', textDecoration: 'none', marginBottom: 7 }}>{label}</a>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#f2efe9', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.5px' }}>Ressources</div>
+                {[['Blog', '/blog'], ['Témoignages', '/temoignages'], ['Affiliation', '/affiliation'], ['Documentation', '/documentation'], ['Support', '/support']].map(([label, href]) => (
+                  <a key={href} href={href} style={{ display: 'block', fontSize: 12, color: '#3e3a34', textDecoration: 'none', marginBottom: 7 }}>{label}</a>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#f2efe9', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.5px' }}>Légal</div>
+                {[['Mentions légales', '/mentions-legales'], ['Confidentialité', '/politique-confidentialite'], ['Cookies', '/cookies'], ['CGU', '/cgu']].map(([label, href]) => (
+                  <a key={href} href={href} style={{ display: 'block', fontSize: 12, color: '#3e3a34', textDecoration: 'none', marginBottom: 7 }}>{label}</a>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }}></div>
-              <span style={{ fontSize: 11, color: '#3e3a34' }}>Systèmes opérationnels</span>
+            <div style={{ maxWidth: 1280, margin: '0 auto', borderTop: '0.5px solid #111118', paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <span style={{ fontSize: 11, color: '#2a2a38' }}>© 2025 PermitAI · contact@permitai.eu · 34 970 communes indexées</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }}></div>
+                <span style={{ fontSize: 11, color: '#2a2a38' }}>Systèmes opérationnels</span>
+              </div>
             </div>
           </footer>
         </body>
