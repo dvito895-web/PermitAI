@@ -27,10 +27,6 @@ const PLANS = {
   ],
 };
 
-onClick={() => {
-  const links = { analyse: '/analyse', cerfa: '/cerfa/wizard', pack: '/depot' };
-  window.location.href = links[p.id] || '/tarifs';
-}}
 
 export default function TarifsPage() {
   const [profil, setProfil] = useState('particulier');
@@ -53,6 +49,10 @@ export default function TarifsPage() {
     fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
   });
 
+ function acheterOneShot(id) {
+  const links = { analyse: '/analyse', cerfa: '/cerfa/wizard', pack: '/depot' };
+  window.location.href = links[id] || '/tarifs';
+}
   return (
     <div style={{ minHeight: '100vh', background: '#06060e', fontFamily: "'DM Sans', sans-serif" }}>
       <nav style={{ padding: '14px 52px', borderBottom: '0.5px solid #1c1c2a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
