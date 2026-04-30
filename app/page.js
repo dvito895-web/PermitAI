@@ -515,171 +515,48 @@ export default function LandingPage() {
       </div>
 
       {/* ── DÉMO INTERACTIVE ── */}
-      <section style={{ background: 'linear-gradient(180deg, #06060e 0%, #0a0a14 100%)', borderBottom: '0.5px solid #1c1c2a', padding: '80px 52px' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div className="eyebrow" style={{ marginBottom: 8, textAlign: 'center' }}>Essayez maintenant</div>
-          <h2 className="section-title" style={{ marginBottom: 6, textAlign: 'center' }}>Analyse <em>PLU gratuite</em></h2>
-          <p style={{ fontSize: 13, color: '#8d887f', marginBottom: 40, fontWeight: 300, textAlign: 'center', maxWidth: 600, margin: '0 auto 40px' }}>
-            Testez notre système d'analyse en temps réel. Entrez une adresse, décrivez votre projet, et découvrez instantanément si votre projet est conforme au PLU local.
-          </p>
-
-          <div className="card-premium" style={{ padding: 32 }}>
-            <form onSubmit={handleDemoAnalysis} style={{ marginBottom: demoResult ? 24 : 0 }}>
-              <div style={{ display: 'grid', gap: 20, marginBottom: 20 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, color: '#8d887f', marginBottom: 8, fontWeight: 500 }}>
-                    Adresse du projet *
-                  </label>
-                  <div ref={addrRef} style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 2 }}>📍</span>
-                    <input
-                      type="text"
-                      value={demoAddress}
-                      onChange={e => handleAddrChange(e.target.value)}
-                      onFocus={() => demoAddress.length >= 1 && setAddrOpen(addrSuggestions.length > 0)}
-                      placeholder="Ex: 10 rue de la République, 75001 Paris"
-                      autoComplete="off"
-                      style={{ width: '100%', background: '#0a0a14', border: '0.5px solid #1c1c2a', borderRadius: 10, padding: '13px 16px 13px 38px', fontSize: 13, color: '#f2efe9', fontFamily: 'inherit', outline: 'none' }}
-                    />
-                    {addrOpen && addrSuggestions.length > 0 && (
-                      <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 9999, background: '#0e0e1a', border: '0.5px solid #1c1c2a', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,.8)' }}>
-                        {addrSuggestions.map((s, i) => (
-                          <button key={i} type="button"
-                            onMouseDown={e => { e.preventDefault(); setDemoAddress(s.label); setAddrOpen(false); setAddrSuggestions([]); }}
-                            style={{ width: '100%', display: 'flex', flexDirection: 'column', padding: '10px 14px', background: 'transparent', border: 'none', borderBottom: i < addrSuggestions.length-1 ? '0.5px solid #111118' : 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(160,120,32,.08)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <span style={{ fontSize: 12.5, color: '#f2efe9', fontWeight: 500 }}>{s.label}</span>
-                            <span style={{ fontSize: 10, color: '#3e3a34', marginTop: 2 }}>{s.context}</span>
-                          </button>
-                        ))}
-                        <div style={{ padding: '5px 14px', fontSize: 10, color: '#1a1a28', borderTop: '0.5px solid #111118' }}>api-adresse.data.gouv.fr · Données officielles</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, color: '#8d887f', marginBottom: 8, fontWeight: 500 }}>
-                    Description du projet *
-                  </label>
-                  <textarea
-                    value={demoDescription}
-                    onChange={(e) => setDemoDescription(e.target.value)}
-                    placeholder="Ex: Extension de 25m² sur maison individuelle avec création d'une terrasse"
-                    className="input-premium"
-                    style={{ height: 100, resize: 'none', width: '100%' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={demoLoading}
-                className="btn-primary"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                {demoLoading ? (
-                  <>
-                    <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                    Analyse en cours...
-                  </>
-                ) : (
-                  <>
-                    <Search size={18} />
-                    Analyser gratuitement
-                  </>
-                )}
-              </button>
-            </form>
-
-            {demoResult && !demoResult.error && (
-              <div style={{ marginTop: 24, borderTop: '0.5px solid #1c1c2a', paddingTop: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {demoResult.verdict === 'conforme' ? (
-                      <CheckCircle2 style={{ width: 28, height: 28, color: '#4ade80' }} />
-                    ) : demoResult.verdict === 'non_conforme' ? (
-                      <AlertCircle style={{ width: 28, height: 28, color: '#f87171' }} />
-                    ) : (
-                      <AlertCircle style={{ width: 28, height: 28, color: '#fbbf24' }} />
-                    )}
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 500, color: '#f2efe9', textTransform: 'capitalize' }}>
-                        {demoResult.verdict?.replace('_', ' ')}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#8d887f' }}>
-                        {demoResult.commune}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="badge-premium" style={{ fontSize: 11 }}>
-                    Confiance {demoResult.score_confiance}%
-                  </div>
-                </div>
-
-                <p style={{ fontSize: 13, color: '#f2efe9', lineHeight: 1.6, marginBottom: 20 }}>
-                  {demoResult.resume}
-                </p>
-
-                {demoResult.regles_applicables && demoResult.regles_applicables.length > 0 && (
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontSize: 12, color: '#8d887f', marginBottom: 12, fontWeight: 500 }}>
-                      Règles PLU applicables (aperçu limité)
-                    </div>
-                    <div style={{ display: 'grid', gap: 10 }}>
-                      {demoResult.regles_applicables.map((regle, i) => (
-                        <div key={i} style={{ background: '#0a0a14', border: '0.5px solid #1c1c2a', borderRadius: 8, padding: 12 }}>
-                          <div style={{ fontSize: 12, fontWeight: 500, color: '#f2efe9', marginBottom: 6 }}>
-                            {regle.article}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#8d887f', lineHeight: 1.5 }}>
-                            {regle.contenu.substring(0, 150)}...
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ background: 'rgba(160,120,32,0.08)', border: '0.5px solid rgba(160,120,32,0.2)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <Lock size={16} color="#a07820" />
-                    <span style={{ fontSize: 12, color: '#a07820', fontWeight: 500 }}>
-                      Analyse partielle - Créez un compte pour voir plus
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 11, color: '#8d887f', lineHeight: 1.5 }}>
-                    Cette analyse est limitée à 2 règles. Créez un compte gratuit pour débloquer toutes les règles applicables, les conditions spécifiques, les points de vigilance, et le CERFA recommandé.
-                  </p>
-                </div>
-
-                <Link href="/sign-up">
-                  <button className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    Voir l'analyse complète
-                    <ArrowRight size={18} />
-                  </button>
-                </Link>
-              </div>
-            )}
-
-            {demoResult && demoResult.error && (
-              <div style={{ marginTop: 24, padding: 16, background: 'rgba(248,113,113,0.08)', border: '0.5px solid rgba(248,113,113,0.2)', borderRadius: 10 }}>
-                <p style={{ fontSize: 13, color: '#f87171' }}>
-                  {demoResult.message || 'Une erreur est survenue. Veuillez réessayer.'}
-                </p>
-              </div>
-            )}
+      <section style={{ background: '#06060e', padding: '80px 52px', borderTop: '0.5px solid #1c1c2a' }}>
+  <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ textAlign: 'center', marginBottom: 48 }}>
+      <div style={{ fontSize: 10, color: '#a07820', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>Sans abonnement</div>
+      <h2 style={{ fontSize: 36, fontWeight: 500, color: '#f2efe9', marginBottom: 10, letterSpacing: '-0.5px' }}>
+        Ce que vous payez <span style={{ color: '#e8b420' }}>3 000€</span> à un cabinet
+      </h2>
+      <p style={{ fontSize: 15, color: '#5a5650' }}>
+        Faites-le pour <strong style={{ color: '#4ade80' }}>49€</strong> — paiement unique, sans abonnement
+      </p>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      {[
+        { emoji: '🔍', titre: 'Analyse PLU + rapport PDF', prix: 49, remplace: 'Cabinet 500€', desc: 'Analyse complète des règles PLU avec rapport PDF officiel téléchargeable', href: '/analyse', cta: 'Lancer mon analyse →' },
+        { emoji: '📋', titre: 'CERFA pré-rempli + pièces', prix: 99, remplace: 'Architecte 800€', desc: 'CERFA officiel pré-rempli avec liste des pièces vérifiée par IA', href: '/cerfa/wizard', cta: 'Remplir mon CERFA →' },
+        { emoji: '🎁', titre: 'Pack Tout-en-un', prix: 299, prixBarre: 347, remplace: 'Économisez 2 000€+', desc: 'Analyse PLU + CERFA pré-rempli + Dépôt mairie complet', href: '/depot', cta: 'Tout en un →', recommande: true },
+      ].map((p, i) => (
+        <div key={i} style={{ background: '#0c0c18', border: p.recommande ? '2px solid rgba(160,120,32,.5)' : '0.5px solid #1c1c2a', borderRadius: 14, padding: 24, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+          {p.recommande && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#a07820', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>MEILLEURE VALEUR</div>}
+          <div style={{ fontSize: 28, marginBottom: 14 }}>{p.emoji}</div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            <span style={{ fontSize: 10, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Paiement unique</span>
+            <span style={{ fontSize: 10, background: 'rgba(160,120,32,.1)', color: '#a07820', padding: '2px 8px', borderRadius: 20 }}>Remplace {p.remplace}</span>
           </div>
-
-          <div style={{ textAlign: 'center', marginTop: 20 }}>
-            <p style={{ fontSize: 11, color: '#3e3a34' }}>
-              ✓ Pas de carte bancaire requise · ✓ Analyse en temps réel · ✓ Données officielles
-            </p>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#f2efe9', marginBottom: 6 }}>{p.titre}</div>
+          <div style={{ fontSize: 12, color: '#5a5650', marginBottom: 16, lineHeight: 1.6, flex: 1 }}>{p.desc}</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 20 }}>
+            {p.prixBarre && <span style={{ fontSize: 13, color: '#3e3a34', textDecoration: 'line-through' }}>{p.prixBarre}€</span>}
+            <span style={{ fontSize: 32, fontWeight: 700, color: '#e8b420' }}>{p.prix}€</span>
+            <span style={{ fontSize: 11, color: '#3e3a34' }}>HT</span>
           </div>
+          <a href={p.href} style={{ textDecoration: 'none' }}>
+            <button style={{ width: '100%', padding: '13px', background: p.recommande ? 'linear-gradient(90deg,#a07820,#c4960a)' : 'transparent', border: p.recommande ? 'none' : '0.5px solid rgba(160,120,32,.4)', borderRadius: 10, color: p.recommande ? '#fff' : '#a07820', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{p.cta}</button>
+          </a>
         </div>
-      </section>
+      ))}
+    </div>
+    <div style={{ textAlign: 'center', marginTop: 32 }}>
+      <a href="/tarifs" style={{ fontSize: 13, color: '#5a5650', textDecoration: 'none' }}>Voir tous les tarifs et abonnements →</a>
+    </div>
+  </div>
+</section>
 
       {/* ── FONCTIONNALITÉS ── */}
       <section id="comment-ca-marche" style={{ background: '#06060e', borderBottom: '0.5px solid #1c1c2a' }}>
