@@ -2,13 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-const ONESHOTS = [
+ const ONESHOTS = [
   { id: 'analyse', emoji: '🔍', titre: 'Analyse PLU + rapport PDF', prix: 49, remplace: 'Cabinet 500€', desc: 'Analyse complète des règles PLU avec rapport PDF officiel téléchargeable' },
   { id: 'cerfa', emoji: '📋', titre: 'CERFA pré-rempli + pièces vérifiées', prix: 99, remplace: 'Architecte 800€', desc: 'CERFA officiel pré-rempli avec liste des pièces vérifiée par IA' },
-  { id: 'depot', emoji: '📬', titre: 'Dépôt mairie + suivi 60 jours', prix: 199, remplace: 'Géomètre 500€', desc: 'Dépôt PLAT\'AU ou LRAR + suivi statut jusqu\'à décision finale' },
   { id: 'pack', emoji: '🎁', titre: 'Pack Tout-en-un', prix: 299, prixBarre: 347, remplace: 'Économisez 2 000€+', desc: 'Analyse PLU + CERFA pré-rempli + Dépôt mairie complet', recommande: true },
-  { id: 'recours', emoji: '⚖️', titre: 'Recours après refus', prix: 399, remplace: 'Avocat 1 500€', desc: 'Lettre de recours gracieux argumentée + jurisprudence IA' },
-  { id: 'audit', emoji: '🏡', titre: 'Audit terrain avant achat', prix: 149, remplace: 'Due diligence notaire 800€', desc: 'Analyse PLU complète avant compromis — évitez les mauvaises surprises' },
 ];
 
 const PLANS = {
@@ -30,19 +27,10 @@ const PLANS = {
   ],
 };
 
-async function acheterOneShot(id) {
-  try {
-    const res = await fetch('/api/stripe/one-time', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product: id }),
-    });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
-  } catch (e) {
-    window.location.href = `mailto:contact@permitai.eu?subject=Achat PermitAI`;
-  }
-}
+onClick={() => {
+  const links = { analyse: '/analyse', cerfa: '/cerfa/wizard', pack: '/depot' };
+  window.location.href = links[p.id] || '/tarifs';
+}}
 
 export default function TarifsPage() {
   const [profil, setProfil] = useState('particulier');
