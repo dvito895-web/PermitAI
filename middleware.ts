@@ -41,6 +41,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/health(.*)',
   '/api/cerfa(.*)',
   '/api/plu/query(.*)',
+  '/api/address(.*)',
   '/api/plu/demo(.*)',
   '/api/stripe/one-time(.*)',
   '/api/rapport/(.*)',
