@@ -2,7 +2,44 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CERFA_DATA, detectCerfa } from '@/lib/cerfaEngine';
+const CERFA_DATA = {
+  '13406': { numero: '13406*07', nom: 'Permis de construire — maison individuelle', emoji: '🏠', delai: '2 mois', pieces: [
+    { code: 'PC1', nom: 'Plan de situation', obligatoire: true, generation: 'auto_api', description: 'Généré automatiquement via API IGN' },
+    { code: 'PC2', nom: 'Plan de masse', obligatoire: true, generation: 'cadastre', description: 'Fond cadastral + projet à dessiner' },
+    { code: 'PC3', nom: 'Plan en coupe', obligatoire: true, generation: 'upload', description: 'Coupe du terrain — à uploader' },
+    { code: 'PC4', nom: 'Plans des façades et toitures', obligatoire: true, generation: 'upload', description: 'Toutes les façades — à uploader' },
+    { code: 'PC5', nom: 'Document graphique d\'insertion', obligatoire: true, generation: 'upload', description: 'Simulation dans l\'environnement' },
+    { code: 'PC6', nom: 'Photographies', obligatoire: true, generation: 'upload', description: 'Photos depuis et vers le terrain' },
+    { code: 'PC7', nom: 'Notice descriptive', obligatoire: true, generation: 'ia_generated', description: 'Générée automatiquement par PermitAI' },
+    { code: 'PC8', nom: 'Justificatifs demandeur', obligatoire: true, generation: 'upload', description: 'Titre de propriété ou autorisation' },
+  ]},
+  '13703': { numero: '13703*11', nom: 'Déclaration préalable — maison individuelle', emoji: '📋', delai: '1 mois', pieces: [
+    { code: 'DP1', nom: 'Plan de situation', obligatoire: true, generation: 'auto_api', description: 'Généré automatiquement via API IGN' },
+    { code: 'DP2', nom: 'Plan de masse', obligatoire: true, generation: 'cadastre', description: 'Fond cadastral automatique' },
+    { code: 'DP3', nom: 'Plan en coupe', obligatoire: false, generation: 'upload', description: 'Si modification du terrain' },
+    { code: 'DP4', nom: 'Plans des façades', obligatoire: true, generation: 'upload', description: 'Façades avant/après' },
+    { code: 'DP5', nom: 'Représentation extérieure', obligatoire: true, generation: 'upload', description: 'Photo + simulation du projet' },
+    { code: 'DP6', nom: 'Photographies', obligatoire: true, generation: 'upload', description: 'Photos du terrain' },
+    { code: 'DP7', nom: 'Notice descriptive', obligatoire: true, generation: 'ia_generated', description: 'Générée automatiquement' },
+  ]},
+  '13410': { numero: '13410*06', nom: 'Certificat d\'urbanisme', emoji: '📜', delai: '1 mois / 2 mois', pieces: [
+    { code: 'CU1', nom: 'Plan de situation', obligatoire: true, generation: 'auto_api', description: 'Généré automatiquement' },
+    { code: 'CU2', nom: 'Note descriptive (CUb)', obligatoire: false, generation: 'ia_generated', description: 'Pour CUb uniquement' },
+  ]},
+  '13414': { numero: '13414*05', nom: 'Déclaration ouverture chantier', emoji: '🚧', delai: 'Immédiat', pieces: [] },
+  '13408': { numero: '13408*08', nom: 'DAACT — Achèvement travaux', emoji: '✅', delai: '90 jours', pieces: [] },
+};
+
+function detectCerfa(surface, type) {
+  const s = parseInt(surface) || 0;
+  if (s > 150) return null;
+  if (['construction', 'surelevation'].includes(type)) return '13406';
+  if (type === 'extension') return s > 20 ? '13406' : '13703';
+  if (type === 'doc') return '13414';
+  if (type === 'daact') return '13408';
+  if (type === 'certificat') return '13410';
+  return '13703';
+}
 
 // Composant autocomplete adresse
 function AdresseField({ value, onChange, onSelect, label = 'Adresse du terrain *' }) {
