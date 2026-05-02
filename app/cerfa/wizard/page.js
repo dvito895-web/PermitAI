@@ -186,6 +186,9 @@ function WizardContent() {
   }
 
   function handleAddrSelect(item) {
+    const batRes = await fetch(`/api/batiments?lat=${item.lat}&lon=${item.lon}&code_insee=${item.citycode}`);
+const batData = await batRes.json();
+setBatimentsData(batData);
     setAddrData(item);
     setForm(f => ({
       ...f,
