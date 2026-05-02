@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import PlanMasseAuto from '@/components/PlanMasseAuto';
+import PlanCoupeAuto from '@/components/PlanCoupeAuto';
 const CERFA_DATA = {
   '13406': { numero: '13406*07', nom: 'Permis de construire — maison individuelle', emoji: '🏠', delai: '2 mois', pieces: [
     { code: 'PC1', nom: 'Plan de situation', obligatoire: true, generation: 'auto_api', description: 'Généré automatiquement via API IGN' },
