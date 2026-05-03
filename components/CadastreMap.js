@@ -1,6 +1,7 @@
 // app/components/CadastreMap.js
 // Wrapper avec dynamic import pour éviter les erreurs SSR
 'use client';
+import 'leaflet/dist/leaflet.css';
 import dynamic from 'next/dynamic';
 
 const CadastreMapClient = dynamic(
