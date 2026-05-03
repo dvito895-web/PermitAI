@@ -7,13 +7,19 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
   const [selected, setSelected] = useState(defaultParcelle || null);
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
-  const layersRef = useRef({}); // stocke toutes les parcelles rendues
-  const selectedLayerRef = useRef(null);
+  const allPolygonsRef = useRef([]);
+  const selectedPolygonRef = useRef(null);
 
   useEffect(() => {
-    if (!lat || !lon || !mapRef.current || mapInstanceRef.current) return;
+    if (!lat || !lon || !mapRef.current) return;
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+    allPolygonsRef.current = [];
+    selectedPolygonRef.current = null;
 
-    // CSS Leaflet
+    // Injecter CSS Leaflet
     if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link');
       link.id = 'leaflet-css';
@@ -25,7 +31,7 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
     import('leaflet').then((L) => {
       const Lf = L.default || L;
 
-      // Fix icônes
+      // Fix icônes Leaflet Next.js
       delete Lf.Icon.Default.prototype._getIconUrl;
       Lf.Icon.Default.mergeOptions({
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -49,8 +55,28 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
 
       setMapReady(true);
 
-      // Charger et afficher toutes les parcelles autour de l'adresse
-      loadParcelles(Lf, map, lat, lon);
+      // Marqueur rouge visible pour l'adresse
+      const markerIcon = Lf.divIcon({
+        html: `<div style="
+          width: 20px; height: 20px;
+          background: #ef4444;
+          border: 3px solid #fff;
+          border-radius: 50%;
+          box-shadow: 0 2px 8px rgba(0,0,0,.7);
+          position: relative;
+          z-index: 1000;
+        "></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        className: '',
+      });
+
+      Lf.marker([lat, lon], { icon: markerIcon, zIndexOffset: 1000 })
+        .addTo(map)
+        .bindTooltip('📍 Votre adresse', { permanent: true, direction: 'top', offset: [0, -14] });
+
+      // Charger les parcelles
+      chargerParcelles(Lf, map);
     });
 
     return () => {
@@ -61,174 +87,158 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
     };
   }, [lat, lon]);
 
-  async function loadParcelles(Lf, map, centerLat, centerLon) {
+  async function chargerParcelles(Lf, map) {
     setLoading(true);
     try {
-      // Récupérer toutes les parcelles autour de l'adresse via API IGN
-      const url = `https://apicarto.ign.fr/api/cadastre/parcelle?lon=${centerLon}&lat=${centerLat}&_limit=50`;
-      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      // API IGN apicarto — retourne les parcelles autour du point
+      const url = `https://apicarto.ign.fr/api/cadastre/parcelle?lon=${lon}&lat=${lat}&_limit=30`;
+      const r = await fetch(url);
+
+      if (!r.ok) throw new Error('API indisponible');
+
       const data = await r.json();
+      const features = data.features || [];
 
-      if (!data.features || data.features.length === 0) {
-        // Fallback: identifier juste la parcelle de l'adresse
-        const fallback = await fetch(`/api/cadastre?lat=${centerLat}&lon=${centerLon}`);
-        const fd = await fallback.json();
-        if (fd.parcelle) preselectParcelle(Lf, map, fd.parcelle, true);
-        return;
-      }
+      if (features.length === 0) throw new Error('Aucune parcelle');
 
-      // Trouver quelle parcelle contient notre adresse
-      let parcelleAdresse = null;
+      let parcelleInitiale = null;
+      let distanceMin = Infinity;
 
-      // Rendre chaque parcelle comme polygone cliquable
-      data.features.forEach(feature => {
+      features.forEach((feature) => {
         const props = feature.properties;
+        const geom = feature.geometry;
+        if (!geom) return;
+
+        const coords = geom.type === 'Polygon'
+          ? geom.coordinates[0].map(c => [c[1], c[0]])
+          : geom.type === 'MultiPolygon'
+          ? geom.coordinates[0][0].map(c => [c[1], c[0]])
+          : null;
+
+        if (!coords || coords.length < 3) return;
+
         const parcelle = {
-          section: props.section,
-          numero: props.numero,
-          reference: `${props.section}${props.numero}`,
-          surface: props.contenance,
-          commune_code: props.commune,
-          geometry: feature.geometry,
+          section: props.section || '',
+          numero: props.numero || '',
+          reference: `${props.section || ''}${props.numero || ''}`,
+          surface: props.contenance || null,
+          commune_code: props.commune || '',
+          geometry: geom,
         };
 
-        const coords = getCoords(feature.geometry);
-        if (!coords) return;
-
+        // Style normal
         const polygon = Lf.polygon(coords, {
-          color: '#6b7280',
+          color: '#9ca3af',
           weight: 1.5,
-          fillColor: '#e5e7eb',
-          fillOpacity: 0.2,
-          className: 'parcelle-polygon',
+          fillColor: '#f3f4f6',
+          fillOpacity: 0.3,
+          interactive: true,
         }).addTo(map);
 
-        polygon.on('click', () => selectParcelle(Lf, map, polygon, parcelle));
-        polygon.on('mouseover', () => {
-          if (polygon !== selectedLayerRef.current) {
-            polygon.setStyle({ fillColor: '#fde68a', fillOpacity: 0.4, color: '#d97706', weight: 2 });
+        // Hover
+        polygon.on('mouseover', function() {
+          if (this !== selectedPolygonRef.current) {
+            this.setStyle({ fillColor: '#fde68a', fillOpacity: 0.5, color: '#d97706', weight: 2 });
           }
+          this.bringToFront();
         });
-        polygon.on('mouseout', () => {
-          if (polygon !== selectedLayerRef.current) {
-            polygon.setStyle({ color: '#6b7280', weight: 1.5, fillColor: '#e5e7eb', fillOpacity: 0.2 });
+        polygon.on('mouseout', function() {
+          if (this !== selectedPolygonRef.current) {
+            this.setStyle({ fillColor: '#f3f4f6', fillOpacity: 0.3, color: '#9ca3af', weight: 1.5 });
           }
         });
 
-        layersRef.current[parcelle.reference] = { polygon, parcelle };
+        // Clic — sélectionner la parcelle
+        polygon.on('click', function() {
+          selectionnerParcelle(Lf, map, this, parcelle);
+        });
 
-        // Vérifier si cette parcelle contient notre adresse (point-in-polygon approximatif)
-        if (!parcelleAdresse && isPointInBounds(centerLat, centerLon, polygon)) {
-          parcelleAdresse = { polygon, parcelle };
-        }
+        allPolygonsRef.current.push({ polygon, parcelle });
+
+        // Trouver la parcelle la plus proche de l'adresse
+        try {
+          const bounds = polygon.getBounds();
+          const center = bounds.getCenter();
+          const dist = Math.abs(center.lat - lat) + Math.abs(center.lng - lon);
+          if (dist < distanceMin) {
+            distanceMin = dist;
+            parcelleInitiale = { polygon, parcelle };
+          }
+        } catch {}
       });
 
       // Pré-sélectionner la parcelle de l'adresse
-      if (parcelleAdresse) {
-        selectParcelle(Lf, map, parcelleAdresse.polygon, parcelleAdresse.parcelle, false);
-      } else {
-        // Fallback API cadastre
-        const fallback = await fetch(`/api/cadastre?lat=${centerLat}&lon=${centerLon}`);
-        const fd = await fallback.json();
-        if (fd.parcelle) preselectParcelle(Lf, map, fd.parcelle, false);
+      if (parcelleInitiale) {
+        selectionnerParcelle(Lf, map, parcelleInitiale.polygon, parcelleInitiale.parcelle);
+        // Zoom sur la parcelle sélectionnée
+        try {
+          map.fitBounds(parcelleInitiale.polygon.getBounds(), { padding: [50, 50], maxZoom: 19 });
+        } catch {}
       }
 
-    } catch (e) {
-      console.error('Erreur chargement parcelles:', e);
-      // Fallback complet
+    } catch (err) {
+      console.error('Erreur parcelles IGN:', err);
+      // Fallback: API cadastre interne
       try {
-        const fallback = await fetch(`/api/cadastre?lat=${centerLat}&lon=${centerLon}`);
-        const fd = await fallback.json();
-        if (fd.parcelle) preselectParcelle(null, map, fd.parcelle, true);
+        const r2 = await fetch(`/api/cadastre?lat=${lat}&lon=${lon}`);
+        const d2 = await r2.json();
+        if (d2.parcelle) {
+          handleSelectParcelle(d2.parcelle);
+        }
       } catch {}
     } finally {
       setLoading(false);
     }
   }
 
-  function getCoords(geometry) {
-    if (!geometry) return null;
-    if (geometry.type === 'Polygon') return geometry.coordinates[0].map(c => [c[1], c[0]]);
-    if (geometry.type === 'MultiPolygon') return geometry.coordinates[0][0].map(c => [c[1], c[0]]);
-    return null;
-  }
-
-  function isPointInBounds(lat, lon, polygon) {
-    try {
-      const bounds = polygon.getBounds();
-      return bounds.contains([lat, lon]);
-    } catch { return false; }
-  }
-
-  function selectParcelle(Lf, map, polygon, parcelle, fitBounds = true) {
-    // Réinitialiser l'ancienne sélection
-    if (selectedLayerRef.current && selectedLayerRef.current !== polygon) {
-      selectedLayerRef.current.setStyle({
-        color: '#6b7280', weight: 1.5, fillColor: '#e5e7eb', fillOpacity: 0.2
+  function selectionnerParcelle(Lf, map, polygon, parcelle) {
+    // Désélectionner l'ancienne
+    if (selectedPolygonRef.current && selectedPolygonRef.current !== polygon) {
+      selectedPolygonRef.current.setStyle({
+        color: '#9ca3af', weight: 1.5, fillColor: '#f3f4f6', fillOpacity: 0.3,
       });
     }
 
-    // Mettre en surbrillance la parcelle sélectionnée
+    // Sélectionner la nouvelle
     polygon.setStyle({
       color: '#a07820',
       weight: 3,
-      fillColor: '#e8b420',
-      fillOpacity: 0.35,
+      fillColor: '#fbbf24',
+      fillOpacity: 0.4,
     });
     polygon.bringToFront();
-    selectedLayerRef.current = polygon;
+    selectedPolygonRef.current = polygon;
 
-    // Popup avec infos
-    const ref = [parcelle.section, parcelle.numero].filter(Boolean).join(' ');
-    polygon.bindPopup(`
-      <div style="font-family:Arial;font-size:12px;min-width:150px">
-        <b style="color:#a07820">📐 Parcelle ${ref}</b><br>
-        ${parcelle.surface ? `Surface : <b>${Math.round(parcelle.surface)} m²</b><br>` : ''}
-        ${parcelle.commune_code ? `INSEE : ${parcelle.commune_code}` : ''}
-        <div style="margin-top:8px;padding:6px;background:#f0fff4;border-radius:4px;font-size:11px;color:#065f46">
-          ✓ Parcelle sélectionnée
-        </div>
-      </div>
-    `).openPopup();
-
-    if (fitBounds) {
-      try { map.fitBounds(polygon.getBounds(), { padding: [40, 40] }); } catch {}
-    }
-
-    setSelected(parcelle);
-    if (onParcelSelect) onParcelSelect(parcelle);
+    // Appeler le callback parent — remplit les champs
+    handleSelectParcelle(parcelle);
   }
 
-  function preselectParcelle(Lf, map, parcelle, fitBounds) {
-    // Utilisé quand on a juste la géométrie depuis l'API (pas depuis la liste)
-    if (!Lf && !mapInstanceRef.current) return;
-    const L = Lf;
-    if (!L || !parcelle?.geometry) return;
-
-    const coords = getCoords(parcelle.geometry);
-    if (!coords) return;
-
-    const polygon = L.polygon(coords, {
-      color: '#a07820', weight: 3, fillColor: '#e8b420', fillOpacity: 0.35,
-    }).addTo(map || mapInstanceRef.current);
-
-    selectedLayerRef.current = polygon;
-    if (fitBounds) {
-      try { (map || mapInstanceRef.current).fitBounds(polygon.getBounds(), { padding: [40, 40] }); } catch {}
-    }
-
+  function handleSelectParcelle(parcelle) {
     setSelected(parcelle);
-    if (onParcelSelect) onParcelSelect(parcelle);
+    // Appel du parent avec toutes les données
+    if (onParcelSelect) {
+      onParcelSelect({
+        reference: parcelle.reference || `${parcelle.section}${parcelle.numero}`,
+        section: parcelle.section,
+        numero: parcelle.numero,
+        surface: parcelle.surface,
+        commune_code: parcelle.commune_code,
+        geometry: parcelle.geometry,
+      });
+    }
   }
 
   return (
     <div>
       <div style={{ fontSize: 11, color: '#5a5650', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span>🖱️ <strong style={{ color: '#f2efe9' }}>Cliquez sur une parcelle</strong> pour la sélectionner — en jaune = sélectionnée</span>
+        <span>
+          🔴 = votre adresse · 
+          <strong style={{ color: '#f2efe9' }}> Cliquez sur une parcelle</strong> pour la sélectionner
+        </span>
         {loading && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 'auto', fontSize: 11, color: '#a07820' }}>
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, color: '#a07820', fontSize: 11 }}>
             <span style={{ width: 10, height: 10, border: '1.5px solid rgba(160,120,32,.3)', borderTop: '1.5px solid #a07820', borderRadius: '50%', display: 'inline-block', animation: 'spin .8s linear infinite' }} />
-            Chargement parcelles IGN...
+            Chargement parcelles...
           </span>
         )}
       </div>
@@ -244,32 +254,48 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
       </div>
 
       {selected ? (
-        <div style={{ marginTop: 8, padding: '10px 14px', background: 'rgba(74,222,128,.06)', border: '0.5px solid rgba(74,222,128,.2)', borderRadius: 8, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontSize: 12 }}>
-          <span style={{ color: '#4ade80', fontWeight: 600 }}>✓ Parcelle sélectionnée</span>
-          {selected.section && (
-            <span style={{ color: '#c4bfb8' }}>
-              Réf: <strong>{selected.section} {selected.numero}</strong>
-            </span>
-          )}
-          {selected.surface && (
-            <span style={{ color: '#c4bfb8' }}>
-              Surface: <strong>{Math.round(selected.surface)} m²</strong>
-            </span>
-          )}
-          {selected.commune_code && (
-            <span style={{ color: '#3e3a34' }}>INSEE: {selected.commune_code}</span>
-          )}
+        <div style={{ marginTop: 8, padding: '12px 14px', background: 'rgba(74,222,128,.06)', border: '0.5px solid rgba(74,222,128,.2)', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 600, marginBottom: 8 }}>✓ Parcelle sélectionnée — champs auto-remplis</div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12 }}>
+            {selected.reference && (
+              <span style={{ color: '#c4bfb8' }}>
+                Référence : <strong style={{ color: '#f2efe9' }}>{selected.reference}</strong>
+              </span>
+            )}
+            {selected.surface && (
+              <span style={{ color: '#c4bfb8' }}>
+                Surface : <strong style={{ color: '#f2efe9' }}>{Math.round(selected.surface)} m²</strong>
+              </span>
+            )}
+            {selected.commune_code && (
+              <span style={{ color: '#3e3a34' }}>INSEE : {selected.commune_code}</span>
+            )}
+          </div>
         </div>
       ) : (
         <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(160,120,32,.04)', border: '0.5px solid rgba(160,120,32,.12)', borderRadius: 8, fontSize: 11, color: '#5a5650' }}>
-          Cliquez sur votre parcelle — référence et surface se rempliront automatiquement
+          Cliquez sur votre parcelle pour remplir automatiquement la référence et la surface
         </div>
       )}
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .parcelle-polygon { cursor: pointer; }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
+
+/* 
+IMPORTANT — dans wizard/page.js, la fonction handleParcelSelect doit être :
+
+function handleParcelSelect(parcelle) {
+  if (parcelle.reference) setField('reference_cadastrale', parcelle.reference);
+  if (parcelle.surface) setField('surface_terrain', Math.round(parcelle.surface));
+  if (parcelle.commune_code) setField('code_insee', parcelle.commune_code);
+}
+
+Et le composant CadastreMap doit être appelé ainsi :
+<CadastreMap
+  lat={addrCoords?.lat}
+  lon={addrCoords?.lon}
+  onParcelSelect={handleParcelSelect}
+/>
+*/
