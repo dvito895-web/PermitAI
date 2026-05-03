@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
-import CadastreMap from '../../../components/CadastreMap';
+import CadastreMap from '../../../components/CadastreMapClient';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
