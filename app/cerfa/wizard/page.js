@@ -816,60 +816,91 @@ function AdresseField({ value, onChange, onSelect }) {
   );
 }
 
-// ── CARTE CADASTRALE ────────────────────────────────────────
+// Remplace la fonction CadastreMap dans le wizard
+// Utilise iframe OSM + API cadastre au clic — sans Leaflet
+
 function CadastreMap({ lat, lon, onParcelSelect, defaultParcelle }) {
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const [ready, setReady] = useState(false);
+  const [selected, setSelected] = useState(defaultParcelle || null);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState(defaultParcelle||null);
-  useEffect(() => {
-    if (typeof window==='undefined') return;
-    if (window.L) { setReady(true); return; }
-    const link=document.createElement('link'); link.rel='stylesheet'; link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(link);
-    const script=document.createElement('script'); script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; script.onload=()=>setReady(true); document.head.appendChild(script);
-  }, []);
-  useEffect(() => {
-    if (!ready||!mapRef.current||!lat||!lon) return;
-    if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current=null; }
-    const L=window.L;
-    const map=L.map(mapRef.current,{zoomControl:true,scrollWheelZoom:true}).setView([lat,lon],18);
-    mapInstanceRef.current=map;
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:21}).addTo(map);
-    L.tileLayer.wms('https://wxs.ign.fr/parcellaire/geoportail/r/wms',{layers:'CADASTRALPARCELS.PARCELLAIRE_EXPRESS',format:'image/png',transparent:true,opacity:0.7,attribution:'© IGN',maxZoom:21}).addTo(map);
-    L.circleMarker([lat,lon],{radius:8,color:'#a07820',fillColor:'#e8b420',fillOpacity:.9,weight:2}).addTo(map);
-    if (defaultParcelle?.geometry) drawP(L,map,defaultParcelle);
-    map.on('click',async e=>{
-      const {lat:cLat,lng:cLon}=e.latlng; setLoading(true);
-      try {
-        const r=await fetch(`/api/cadastre?lat=${cLat}&lon=${cLon}`);
-        const d=await r.json();
-        if (d.parcelle) { map.eachLayer(l=>{if(l._isP) map.removeLayer(l);}); if(d.parcelle.geometry) drawP(L,map,d.parcelle); setSelected(d.parcelle); if(onParcelSelect) onParcelSelect(d.parcelle); }
-      } catch {} finally { setLoading(false); }
-    });
-    return ()=>{ if(mapInstanceRef.current){mapInstanceRef.current.remove();mapInstanceRef.current=null;} };
-  }, [ready,lat,lon]);
-  function drawP(L,map,p) {
-    const g=p.geometry; if(!g) return;
-    const s={color:'#a07820',weight:3,fillColor:'#e8b420',fillOpacity:.2};
-    let layer;
-    if(g.type==='Polygon') layer=L.polygon(g.coordinates[0].map(c=>[c[1],c[0]]),s).addTo(map);
-    else if(g.type==='MultiPolygon') layer=L.polygon(g.coordinates[0][0].map(c=>[c[1],c[0]]),s).addTo(map);
-    if(layer){layer._isP=true;layer.bindPopup(`<b style="color:#a07820">${[p.section,p.numero].filter(Boolean).join(' ')||'Parcelle'}</b><br>${p.surface?`${Math.round(p.surface)} m²`:''}`).openPopup();try{map.fitBounds(layer.getBounds(),{padding:[30,30]});}catch{}}
+  const [mode, setMode] = useState('map'); // map | satellite | cadastre
+
+  // URLs des cartes en iframe
+  const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.003},${lat-0.002},${lon+0.003},${lat+0.002}&layer=mapnik&marker=${lat},${lon}`;
+  const geoportailUrl = `https://www.geoportail.gouv.fr/embed?lat=${lat}&lon=${lon}&zoom=18&layers=ORTHOIMAGERY.ORTHOPHOTOS&layers=CADASTRALPARCELS.PARCELLAIRE_EXPRESS&layersOpacity=1,0.7`;
+
+  // Quand le client clique sur "Identifier ma parcelle" — appel API cadastre
+  async function identifierParcelle() {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/cadastre?lat=${lat}&lon=${lon}`);
+      const d = await r.json();
+      if (d.parcelle) {
+        setSelected(d.parcelle);
+        if (onParcelSelect) onParcelSelect(d.parcelle);
+      }
+    } catch {}
+    finally { setLoading(false); }
   }
+
+  // Auto-identifier au chargement si pas encore fait
+  useEffect(() => {
+    if (!defaultParcelle && lat && lon) {
+      identifierParcelle();
+    }
+  }, [lat, lon]);
+
   return (
     <div>
-      <div style={{ fontSize:11,color:'#5a5650',marginBottom:6 }}>🖱️ <strong style={{ color:'#f2efe9' }}>Cliquez sur votre parcelle</strong> pour la sélectionner et récupérer les données cadastrales officielles</div>
-      <div style={{ position:'relative',height:240,borderRadius:10,overflow:'hidden',border:'0.5px solid #1c1c2a' }}>
-        <div ref={mapRef} style={{ height:'100%' }} />
-        {!ready&&<div style={{ position:'absolute',inset:0,background:'#0a0a14',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#5a5650' }}>Chargement carte...</div>}
-        {loading&&<div style={{ position:'absolute',top:8,left:'50%',transform:'translateX(-50%)',background:'rgba(14,14,26,.92)',border:'0.5px solid rgba(160,120,32,.4)',borderRadius:8,padding:'7px 14px',fontSize:11,color:'#a07820',zIndex:999 }}>🔍 Récupération parcelle...</div>}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+        <button onClick={() => setMode('map')}
+          style={{ padding: '5px 12px', background: mode === 'map' ? '#a07820' : 'transparent', border: `0.5px solid ${mode === 'map' ? '#a07820' : '#1c1c2a'}`, borderRadius: 6, color: mode === 'map' ? '#fff' : '#5a5650', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+          🗺️ Plan
+        </button>
+        <button onClick={() => setMode('satellite')}
+          style={{ padding: '5px 12px', background: mode === 'satellite' ? '#a07820' : 'transparent', border: `0.5px solid ${mode === 'satellite' ? '#a07820' : '#1c1c2a'}`, borderRadius: 6, color: mode === 'satellite' ? '#fff' : '#5a5650', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+          🛰️ Satellite + Cadastre
+        </button>
+        <button onClick={identifierParcelle} disabled={loading}
+          style={{ padding: '5px 12px', background: 'rgba(160,120,32,.1)', border: '0.5px solid rgba(160,120,32,.3)', borderRadius: 6, color: '#a07820', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto' }}>
+          {loading ? '🔍 Identification...' : '📐 Identifier ma parcelle'}
+        </button>
       </div>
-      {selected&&<div style={{ marginTop:8,padding:'8px 14px',background:'rgba(74,222,128,.06)',border:'0.5px solid rgba(74,222,128,.2)',borderRadius:8,display:'flex',gap:16,flexWrap:'wrap',fontSize:12 }}>
-        <span style={{ color:'#4ade80',fontWeight:600 }}>✓ Parcelle sélectionnée</span>
-        {selected.section&&<span style={{ color:'#c4bfb8' }}>Réf: <strong>{selected.section} {selected.numero}</strong></span>}
-        {selected.surface&&<span style={{ color:'#c4bfb8' }}>Surface: <strong>{Math.round(selected.surface)} m²</strong></span>}
-      </div>}
+
+      <div style={{ position: 'relative', height: 260, borderRadius: 10, overflow: 'hidden', border: '0.5px solid #1c1c2a' }}>
+        {mode === 'map' ? (
+          <iframe
+            src={osmUrl}
+            width="100%" height="100%"
+            style={{ border: 'none', display: 'block' }}
+            title="Carte OpenStreetMap"
+            loading="lazy"
+          />
+        ) : (
+          <iframe
+            src={geoportailUrl}
+            width="100%" height="100%"
+            style={{ border: 'none', display: 'block' }}
+            title="Géoportail Cadastre"
+            loading="lazy"
+          />
+        )}
+        <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(14,14,26,.85)', borderRadius: 6, padding: '4px 8px', fontSize: 10, color: '#5a5650' }}>
+          Données IGN · Cadastre officiel
+        </div>
+      </div>
+
+      {selected ? (
+        <div style={{ marginTop: 8, padding: '10px 14px', background: 'rgba(74,222,128,.06)', border: '0.5px solid rgba(74,222,128,.2)', borderRadius: 8, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12 }}>
+          <span style={{ color: '#4ade80', fontWeight: 600 }}>✓ Parcelle identifiée</span>
+          {selected.section && <span style={{ color: '#c4bfb8' }}>Réf: <strong>{selected.section} {selected.numero}</strong></span>}
+          {selected.surface && <span style={{ color: '#c4bfb8' }}>Surface: <strong>{Math.round(selected.surface)} m²</strong></span>}
+          {selected.commune_code && <span style={{ color: '#3e3a34' }}>INSEE: {selected.commune_code}</span>}
+        </div>
+      ) : (
+        <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(160,120,32,.04)', border: '0.5px solid rgba(160,120,32,.15)', borderRadius: 8, fontSize: 11, color: '#5a5650' }}>
+          💡 Cliquez sur <strong style={{ color: '#a07820' }}>Identifier ma parcelle</strong> pour récupérer automatiquement la référence cadastrale et la surface du terrain
+        </div>
+      )}
     </div>
   );
 }
