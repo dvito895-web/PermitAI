@@ -885,11 +885,11 @@ function WizardContent() {
   const setField = useCallback((k,v)=>setForm(f=>({...f,[k]:v})),[]);
   const savePiece = useCallback((data,code)=>setPiecesData(prev=>({...prev,[code]:data})),[]);
 
-  function handleParcelSelect(p) {
-    if(p.reference) setField('reference_cadastrale',p.reference);
-    if(p.surface) setField('surface_terrain',Math.round(p.surface));
-    if(p.commune_code) setField('code_insee',p.commune_code);
-  }
+  function handleParcelSelect(parcelle) {
+  if (parcelle.reference) setField('reference_cadastrale', parcelle.reference);
+  if (parcelle.surface) setField('surface_terrain', Math.round(parcelle.surface));
+  if (parcelle.commune_code) setField('code_insee', parcelle.commune_code);
+}
 
   async function handleAddrSelect(item) {
     setForm(f=>({...f,adresse_terrain:item.label,commune:item.city||'',code_postal:item.postcode||'',code_insee:item.citycode||''}));
