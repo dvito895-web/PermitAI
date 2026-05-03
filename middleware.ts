@@ -44,6 +44,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhook/stripe(.*)',
   '/api/health(.*)',
   '/api/cerfa(.*)',
+  '/api/cerfa/analyze-plan(.*)',
   '/api/plu/query(.*)',
   '/api/address(.*)',
   '/api/plu/demo(.*)',
