@@ -1,5 +1,3 @@
-// app/components/CadastreMapClient.js
-// Composant carte interactive avec Leaflet installé en npm
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
@@ -10,21 +8,28 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
   const [selected, setSelected] = useState(defaultParcelle || null);
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
-  const [baseLayer, setBaseLayer] = useState('plan');
 
   useEffect(() => {
     if (!lat || !lon || !mapRef.current || mapInstanceRef.current) return;
 
-    // Import Leaflet dynamiquement (installé en npm donc pas de blocage CDN)
-    import('leaflet').then(L => {
+    // Injecter le CSS Leaflet dynamiquement
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    import('leaflet').then((L) => {
       const Leaflet = L.default || L;
 
-      // Fix icônes Leaflet dans Next.js
+      // Fix icônes Next.js
       delete Leaflet.Icon.Default.prototype._getIconUrl;
       Leaflet.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
 
       const map = Leaflet.map(mapRef.current, {
@@ -33,72 +38,48 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
         zoomControl: true,
         scrollWheelZoom: true,
       });
-
       mapInstanceRef.current = map;
 
-      // Fond Plan IGN
-      const planLayer = Leaflet.tileLayer(
-        'https://wxs.ign.fr/cartes/geoportail/r/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
-        { attribution: '© IGN', maxZoom: 20 }
-      );
+      // Fond OpenStreetMap (toujours disponible, pas d'auth)
+      Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 21,
+      }).addTo(map);
 
-      // Fond Satellite IGN
-      const satLayer = Leaflet.tileLayer(
-        'https://wxs.ign.fr/ortho/geoportail/r/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=HR.ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
-        { attribution: '© IGN', maxZoom: 20 }
-      );
+      // Overlay cadastre IGN WMS public (pas d'auth requise)
+      Leaflet.tileLayer.wms('https://wxs.ign.fr/parcellaire/geoportail/r/wms', {
+        layers: 'CADASTRALPARCELS.PARCELLAIRE_EXPRESS',
+        format: 'image/png',
+        transparent: true,
+        opacity: 0.6,
+        attribution: '© IGN',
+        maxZoom: 21,
+      }).addTo(map);
 
-      // Overlay Cadastre IGN (parcelles)
-      const cadastreLayer = Leaflet.tileLayer.wms(
-        'https://wxs.ign.fr/parcellaire/geoportail/r/wms',
-        {
-          layers: 'CADASTRALPARCELS.PARCELLAIRE_EXPRESS',
-          format: 'image/png',
-          transparent: true,
-          opacity: 0.7,
-          attribution: '© IGN Cadastre',
-          maxZoom: 21,
-        }
-      );
-
-      // Ajouter plan par défaut + cadastre
-      planLayer.addTo(map);
-      cadastreLayer.addTo(map);
-
-      // Contrôle de couches
-      const baseLayers = {
-        '🗺️ Plan IGN': planLayer,
-        '🛰️ Satellite': satLayer,
-      };
-      const overlays = {
-        '📐 Parcelles cadastrales': cadastreLayer,
-      };
-      Leaflet.control.layers(baseLayers, overlays, { position: 'topright' }).addTo(map);
-
-      // Marqueur position de l'adresse
-      const adresseIcon = Leaflet.divIcon({
-        html: `<div style="width:16px;height:16px;background:#a07820;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.5)"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+      // Marqueur position adresse
+      const icon = Leaflet.divIcon({
+        html: `<div style="width:14px;height:14px;background:#a07820;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.6)"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
         className: '',
       });
-      Leaflet.marker([lat, lon], { icon: adresseIcon })
+      Leaflet.marker([lat, lon], { icon })
         .addTo(map)
         .bindTooltip('Votre adresse', { permanent: false });
 
-      // Groupe pour les parcelles sélectionnées
+      // Groupe couches parcelles
       layerGroupRef.current = Leaflet.layerGroup().addTo(map);
 
-      // Si parcelle déjà connue, l'afficher
-      if (defaultParcelle?.geometry) {
-        drawParcelle(Leaflet, defaultParcelle);
-      }
+      // Afficher parcelle par défaut si dispo
+      if (defaultParcelle?.geometry) drawParcelle(Leaflet, defaultParcelle);
 
-      // Clic sur carte → identifier la parcelle
+      // Clic sur carte
       map.on('click', async (e) => {
-        const { lat: cLat, lng: cLon } = e.latlng;
-        await fetchParcelle(Leaflet, cLat, cLon);
+        await fetchAndDraw(Leaflet, e.latlng.lat, e.latlng.lng);
       });
+
+      // Auto-identifier au chargement
+      fetchAndDraw(Leaflet, lat, lon);
 
       setMapReady(true);
     });
@@ -111,13 +92,13 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
     };
   }, [lat, lon]);
 
-  async function fetchParcelle(Leaflet, cLat, cLon) {
+  async function fetchAndDraw(Leaflet, cLat, cLon) {
     setLoading(true);
     try {
       const r = await fetch(`/api/cadastre?lat=${cLat}&lon=${cLon}`);
       const d = await r.json();
       if (d.parcelle) {
-        drawParcelle(Leaflet || (await import('leaflet').then(L => L.default || L)), d.parcelle);
+        drawParcelle(Leaflet, d.parcelle);
         setSelected(d.parcelle);
         if (onParcelSelect) onParcelSelect(d.parcelle);
       }
@@ -126,112 +107,78 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect, defaultPar
   }
 
   function drawParcelle(Leaflet, parcelle) {
-    if (!layerGroupRef.current || !parcelle.geometry) return;
+    if (!layerGroupRef.current || !parcelle?.geometry) return;
     layerGroupRef.current.clearLayers();
 
-    const style = {
-      color: '#a07820',
-      weight: 3,
-      fillColor: '#e8b420',
-      fillOpacity: 0.25,
-    };
-
-    let layer;
     const geom = parcelle.geometry;
-    if (geom.type === 'Polygon') {
-      layer = Leaflet.polygon(geom.coordinates[0].map(c => [c[1], c[0]]), style);
-    } else if (geom.type === 'MultiPolygon') {
-      layer = Leaflet.polygon(geom.coordinates[0][0].map(c => [c[1], c[0]]), style);
-    }
+    const coords =
+      geom.type === 'Polygon' ? geom.coordinates[0] :
+      geom.type === 'MultiPolygon' ? geom.coordinates[0][0] : null;
+    if (!coords) return;
 
-    if (layer) {
-      layer.addTo(layerGroupRef.current);
-      const ref = [parcelle.section, parcelle.numero].filter(Boolean).join(' ');
-      layer.bindPopup(`
-        <div style="font-family:Arial,sans-serif;font-size:13px;min-width:150px">
-          <strong style="color:#a07820">📐 ${ref || 'Parcelle'}</strong><br>
-          ${parcelle.surface ? `Surface: <strong>${Math.round(parcelle.surface)} m²</strong><br>` : ''}
-          ${parcelle.commune_code ? `INSEE: ${parcelle.commune_code}` : ''}
-          <br><br>
-          <button onclick="window.selectThisParcelle()" style="background:#a07820;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:12px;width:100%">
-            ✓ Sélectionner cette parcelle
-          </button>
-        </div>
-      `).openPopup();
+    const layer = Leaflet.polygon(
+      coords.map(c => [c[1], c[0]]),
+      { color: '#a07820', weight: 3, fillColor: '#e8b420', fillOpacity: 0.25 }
+    ).addTo(layerGroupRef.current);
 
-      // Handler pour le bouton dans le popup
-      window.selectThisParcelle = () => {
-        setSelected(parcelle);
-        if (onParcelSelect) onParcelSelect(parcelle);
-        if (mapInstanceRef.current) mapInstanceRef.current.closePopup();
-      };
+    const ref = [parcelle.section, parcelle.numero].filter(Boolean).join(' ');
+    layer.bindPopup(`
+      <div style="font-family:Arial;font-size:12px;min-width:140px">
+        <b style="color:#a07820">📐 ${ref || 'Parcelle'}</b><br>
+        ${parcelle.surface ? `Surface: <b>${Math.round(parcelle.surface)} m²</b><br>` : ''}
+        ${parcelle.commune_code ? `INSEE: ${parcelle.commune_code}` : ''}
+      </div>
+    `).openPopup();
 
-      try { mapInstanceRef.current?.fitBounds(layer.getBounds(), { padding: [30, 30] }); } catch {}
-    }
+    try { mapInstanceRef.current?.fitBounds(layer.getBounds(), { padding: [40, 40] }); } catch {}
   }
 
-  async function identifierDepuisAdresse() {
-    if (!lat || !lon) return;
-    setLoading(true);
-    try {
-      const r = await fetch(`/api/cadastre?lat=${lat}&lon=${lon}`);
-      const d = await r.json();
-      if (d.parcelle) {
-        const L = await import('leaflet').then(mod => mod.default || mod);
-        drawParcelle(L, d.parcelle);
-        setSelected(d.parcelle);
-        if (onParcelSelect) onParcelSelect(d.parcelle);
-      }
-    } catch {}
-    finally { setLoading(false); }
+  async function reIdentifier() {
+    if (!lat || !lon || !mapInstanceRef.current) return;
+    const L = await import('leaflet').then(m => m.default || m);
+    await fetchAndDraw(L, lat, lon);
   }
 
   return (
     <div>
-      {/* Instructions */}
-      <div style={{ fontSize: 11, color: '#5a5650', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span>🖱️ <strong style={{ color: '#f2efe9' }}>Cliquez sur votre parcelle</strong> sur la carte pour la sélectionner</span>
-        <button onClick={identifierDepuisAdresse} disabled={loading}
-          style={{ padding: '4px 12px', background: 'rgba(160,120,32,.1)', border: '0.5px solid rgba(160,120,32,.3)', borderRadius: 6, color: '#a07820', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5, marginLeft: 'auto', flexShrink: 0 }}>
+      <div style={{ fontSize: 11, color: '#5a5650', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>🖱️ <strong style={{ color: '#f2efe9' }}>Cliquez sur votre parcelle</strong> pour la sélectionner</span>
+        <button onClick={reIdentifier} disabled={loading}
+          style={{ marginLeft: 'auto', padding: '4px 10px', background: 'rgba(160,120,32,.1)', border: '0.5px solid rgba(160,120,32,.3)', borderRadius: 6, color: '#a07820', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5 }}>
           {loading
-            ? <><span style={{ display:'inline-block',width:10,height:10,border:'1.5px solid rgba(160,120,32,.3)',borderTop:'1.5px solid #a07820',borderRadius:'50%',animation:'spin .8s linear infinite' }} />Identification...</>
-            : '📐 Auto-identifier'}
+            ? <><span style={{ width: 10, height: 10, border: '1.5px solid rgba(160,120,32,.3)', borderTop: '1.5px solid #a07820', borderRadius: '50%', display: 'inline-block', animation: 'spin .8s linear infinite' }} />Chargement...</>
+            : '📐 Ré-identifier'}
         </button>
       </div>
 
-      {/* Carte */}
       <div style={{ position: 'relative', height: 280, borderRadius: 10, overflow: 'hidden', border: '0.5px solid #1c1c2a' }}>
         <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
         {!mapReady && (
-          <div style={{ position: 'absolute', inset: 0, background: '#0a0a14', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <span style={{ display:'inline-block',width:24,height:24,border:'2.5px solid rgba(160,120,32,.3)',borderTop:'2.5px solid #a07820',borderRadius:'50%',animation:'spin .8s linear infinite' }} />
+          <div style={{ position: 'absolute', inset: 0, background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexDirection: 'column' }}>
+            <span style={{ width: 22, height: 22, border: '2px solid rgba(160,120,32,.3)', borderTop: '2px solid #a07820', borderRadius: '50%', display: 'inline-block', animation: 'spin .8s linear infinite' }} />
             <div style={{ fontSize: 12, color: '#5a5650' }}>Chargement de la carte...</div>
           </div>
         )}
         {loading && (
-          <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', background: 'rgba(14,14,26,.92)', border: '0.5px solid rgba(160,120,32,.4)', borderRadius: 8, padding: '7px 14px', fontSize: 11, color: '#a07820', zIndex: 999, whiteSpace: 'nowrap' }}>
-            🔍 Récupération de la parcelle...
+          <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', background: 'rgba(14,14,26,.9)', border: '0.5px solid rgba(160,120,32,.4)', borderRadius: 8, padding: '6px 14px', fontSize: 11, color: '#a07820', zIndex: 999 }}>
+            🔍 Récupération de la parcelle IGN...
           </div>
         )}
       </div>
 
-      {/* Résultat sélection */}
       {selected ? (
-        <div style={{ marginTop: 8, padding: '10px 14px', background: 'rgba(74,222,128,.06)', border: '0.5px solid rgba(74,222,128,.2)', borderRadius: 8, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 600 }}>✓ Parcelle sélectionnée</span>
-          {selected.section && <span style={{ fontSize: 12, color: '#c4bfb8' }}>Réf: <strong>{selected.section} {selected.numero}</strong></span>}
-          {selected.surface && <span style={{ fontSize: 12, color: '#c4bfb8' }}>Surface: <strong>{Math.round(selected.surface)} m²</strong></span>}
-          {selected.commune_code && <span style={{ fontSize: 11, color: '#3e3a34' }}>INSEE: {selected.commune_code}</span>}
-          <button onClick={() => { setSelected(null); if (layerGroupRef.current) layerGroupRef.current.clearLayers(); }}
-            style={{ marginLeft: 'auto', padding: '3px 8px', background: 'transparent', border: '0.5px solid rgba(239,68,68,.3)', borderRadius: 5, color: '#ef4444', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}>
-            Changer
-          </button>
+        <div style={{ marginTop: 8, padding: '10px 14px', background: 'rgba(74,222,128,.06)', border: '0.5px solid rgba(74,222,128,.2)', borderRadius: 8, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontSize: 12 }}>
+          <span style={{ color: '#4ade80', fontWeight: 600 }}>✓ Parcelle sélectionnée</span>
+          {selected.section && <span style={{ color: '#c4bfb8' }}>Réf: <strong>{selected.section} {selected.numero}</strong></span>}
+          {selected.surface && <span style={{ color: '#c4bfb8' }}>Surface: <strong>{Math.round(selected.surface)} m²</strong></span>}
+          {selected.commune_code && <span style={{ color: '#3e3a34' }}>INSEE: {selected.commune_code}</span>}
         </div>
       ) : (
         <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(160,120,32,.04)', border: '0.5px solid rgba(160,120,32,.12)', borderRadius: 8, fontSize: 11, color: '#5a5650' }}>
-          Cliquez sur la carte ou sur "Auto-identifier" — données cadastrales IGN officielles
+          Cliquez sur votre parcelle sur la carte — les données cadastrales se rempliront automatiquement
         </div>
       )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
