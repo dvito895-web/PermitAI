@@ -7,166 +7,31 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
-  const polygonsRef = useRef([]);
-  const selectedRef = useRef(null);
-  const LeafletRef = useRef(null);
+  const geoJsonLayerRef = useRef(null);
+  const selectedFeatureRef = useRef(null);
 
   useEffect(() => {
     if (!lat || !lon || !mapRef.current) return;
 
-    // Nettoyer carte existante
+    // Nettoyer
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
     }
-    polygonsRef.current = [];
-    selectedRef.current = null;
 
     // CSS Leaflet
     if (!document.getElementById('lf-css')) {
-      const l = document.createElement('link');
-      l.id = 'lf-css';
-      l.rel = 'stylesheet';
-      l.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(l);
+      const link = document.createElement('link');
+      link.id = 'lf-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
     }
 
-    // Attendre que le CSS soit chargé puis init carte
-    setTimeout(() => initMap(), 300);
-
-    async function initMap() {
-      const L = await import('leaflet').then(m => m.default || m);
-      LeafletRef.current = L;
-
-      if (!mapRef.current) return;
-
-      // Corriger icônes
-      delete L.Icon.Default.prototype._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-
-      const map = L.map(mapRef.current, {
-        center: [lat, lon],
-        zoom: 18,
-        zoomControl: true,
-      });
-      mapInstanceRef.current = map;
-
-      // Tuiles OSM
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        maxZoom: 22,
-      }).addTo(map);
-
-      setMapReady(true);
-
-      // Marqueur adresse bien visible
-      const pin = L.divIcon({
-        html: `<div style="width:18px;height:18px;background:#ef4444;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px #ef4444;"></div>`,
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
-        className: '',
-      });
-      L.marker([lat, lon], { icon: pin, zIndexOffset: 9999 })
-        .addTo(map)
-        .bindTooltip('📍 Votre adresse', { permanent: true, direction: 'top', offset: [0, -12] });
-
-      // Charger les parcelles via notre proxy API
-      setLoading(true);
-      try {
-        const r = await fetch(`/api/parcelles?lat=${lat}&lon=${lon}`);
-        const data = await r.json();
-        const features = data.features || [];
-
-        if (features.length === 0) {
-          // Aucune parcelle — fallback
-          setLoading(false);
-          return;
-        }
-
-        let bestPolygon = null;
-        let bestDist = Infinity;
-
-        features.forEach((feature) => {
-          const props = feature.properties || {};
-          const geom = feature.geometry;
-          if (!geom) return;
-
-          // Convertir coordonnées GeoJSON → Leaflet [lat, lon]
-          let coords;
-          if (geom.type === 'Polygon') {
-            coords = geom.coordinates[0].map(c => [c[1], c[0]]);
-          } else if (geom.type === 'MultiPolygon') {
-            coords = geom.coordinates[0][0].map(c => [c[1], c[0]]);
-          } else return;
-
-          if (!coords || coords.length < 3) return;
-
-          const parcelle = {
-            reference: `${props.section || ''}${props.numero || ''}`,
-            section: props.section || '',
-            numero: props.numero || '',
-            surface: props.contenance || null,
-            commune_code: props.commune || '',
-            geometry: geom,
-          };
-
-          // Créer le polygone Leaflet
-          const polygon = L.polygon(coords, {
-            color: '#94a3b8',
-            weight: 1.5,
-            fillColor: '#e2e8f0',
-            fillOpacity: 0.35,
-          });
-
-          polygon.addTo(map);
-
-          // Événements hover + clic
-          polygon.on('mouseover', function () {
-            if (this !== selectedRef.current) {
-              this.setStyle({ fillColor: '#fde68a', fillOpacity: 0.55, color: '#f59e0b', weight: 2.5 });
-            }
-          });
-          polygon.on('mouseout', function () {
-            if (this !== selectedRef.current) {
-              this.setStyle({ fillColor: '#e2e8f0', fillOpacity: 0.35, color: '#94a3b8', weight: 1.5 });
-            }
-          });
-          polygon.on('click', function () {
-            choisirParcelle(L, this, parcelle);
-          });
-
-          polygonsRef.current.push({ polygon, parcelle });
-
-          // Trouver la plus proche de l'adresse
-          try {
-            const c = polygon.getBounds().getCenter();
-            const dist = Math.hypot(c.lat - lat, c.lng - lon);
-            if (dist < bestDist) {
-              bestDist = dist;
-              bestPolygon = { polygon, parcelle };
-            }
-          } catch {}
-        });
-
-        // Pré-sélectionner la parcelle de l'adresse
-        if (bestPolygon) {
-          choisirParcelle(L, bestPolygon.polygon, bestPolygon.parcelle);
-          try {
-            map.fitBounds(bestPolygon.polygon.getBounds(), { padding: [60, 60], maxZoom: 19 });
-          } catch {}
-        }
-
-      } catch (e) {
-        console.error('Erreur chargement parcelles:', e);
-      } finally {
-        setLoading(false);
-      }
-    }
-
+    // Init après CSS
+    const t = setTimeout(() => init(), 400);
     return () => {
+      clearTimeout(t);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -174,106 +39,218 @@ export default function CadastreMapClient({ lat, lon, onParcelSelect }) {
     };
   }, [lat, lon]);
 
-  function choisirParcelle(L, polygon, parcelle) {
-    // Reset ancien style
-    if (selectedRef.current && selectedRef.current !== polygon) {
-      selectedRef.current.setStyle({
-        fillColor: '#e2e8f0', fillOpacity: 0.35, color: '#94a3b8', weight: 1.5,
+  async function init() {
+    if (!mapRef.current) return;
+    const L = await import('leaflet').then(m => m.default || m);
+
+    // Fix icônes
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+
+    const map = L.map(mapRef.current, {
+      center: [lat, lon],
+      zoom: 18,
+      zoomControl: true,
+      scrollWheelZoom: false,
+    });
+    mapInstanceRef.current = map;
+
+    // Fond carte claire (style urbassist)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© CartoDB © OSM',
+      maxZoom: 22,
+    }).addTo(map);
+
+    setMapReady(true);
+
+    // Charger parcelles
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/parcelles?lat=${lat}&lon=${lon}`);
+      const geojson = await res.json();
+
+      if (!geojson.features || geojson.features.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // Trouver la parcelle de l'adresse (pré-sélection)
+      let parcelleAdresse = null;
+      let distMin = Infinity;
+
+      geojson.features.forEach(f => {
+        if (!f.geometry) return;
+        // Centroïde approx
+        const coords = f.geometry.type === 'Polygon'
+          ? f.geometry.coordinates[0]
+          : f.geometry.coordinates[0][0];
+        const cx = coords.reduce((s, c) => s + c[0], 0) / coords.length;
+        const cy = coords.reduce((s, c) => s + c[1], 0) / coords.length;
+        const dist = Math.hypot(cx - lon, cy - lat);
+        if (dist < distMin) { distMin = dist; parcelleAdresse = f; }
       });
+
+      // Rendu GeoJSON avec styles
+      const geoJsonLayer = L.geoJSON(geojson, {
+        style: (feature) => ({
+          color: '#64748b',
+          weight: 1.5,
+          fillColor: feature === parcelleAdresse ? '#fbbf24' : '#cbd5e1',
+          fillOpacity: feature === parcelleAdresse ? 0.5 : 0.3,
+        }),
+        onEachFeature: (feature, layer) => {
+          // Hover
+          layer.on('mouseover', function () {
+            if (feature !== selectedFeatureRef.current) {
+              this.setStyle({ fillColor: '#fde68a', fillOpacity: 0.55, color: '#f59e0b', weight: 2 });
+              this.bringToFront();
+            }
+          });
+          layer.on('mouseout', function () {
+            if (feature !== selectedFeatureRef.current) {
+              this.setStyle({ fillColor: '#cbd5e1', fillOpacity: 0.3, color: '#64748b', weight: 1.5 });
+            }
+          });
+          // Clic
+          layer.on('click', () => {
+            selectFeature(L, geoJsonLayer, feature, layer);
+          });
+        },
+      }).addTo(map);
+
+      geoJsonLayerRef.current = geoJsonLayer;
+
+      // Pré-sélectionner
+      if (parcelleAdresse) {
+        geoJsonLayer.eachLayer(layer => {
+          if (layer.feature === parcelleAdresse) {
+            selectFeature(L, geoJsonLayer, parcelleAdresse, layer);
+          }
+        });
+        try {
+          map.fitBounds(geoJsonLayer.getBounds(), { padding: [60, 60], maxZoom: 19 });
+        } catch {}
+      }
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
+
+    // Marqueur adresse (point rouge par-dessus tout)
+    const L2 = await import('leaflet').then(m => m.default || m);
+    const icon = L2.divIcon({
+      html: `<div style="width:14px;height:14px;background:#ef4444;border:2.5px solid white;border-radius:50%;box-shadow:0 0 0 2px rgba(239,68,68,.4),0 2px 6px rgba(0,0,0,.4)"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+      className: '',
+    });
+    L2.marker([lat, lon], { icon, zIndexOffset: 9999 })
+      .addTo(map)
+      .bindTooltip('Votre adresse', { permanent: false, direction: 'top' });
+  }
+
+  function selectFeature(L, geoJsonLayer, feature, layer) {
+    const props = feature.properties || {};
+
+    // Reset tous les styles
+    geoJsonLayer.eachLayer(l => {
+      if (l.feature === selectedFeatureRef.current && l !== layer) {
+        l.setStyle({ fillColor: '#cbd5e1', fillOpacity: 0.3, color: '#64748b', weight: 1.5 });
+      }
+    });
 
     // Style sélectionné
-    polygon.setStyle({
+    layer.setStyle({
       color: '#a07820',
-      weight: 3.5,
+      weight: 3,
       fillColor: '#fbbf24',
-      fillOpacity: 0.5,
+      fillOpacity: 0.55,
     });
-    polygon.bringToFront();
-    selectedRef.current = polygon;
+    layer.bringToFront();
+    selectedFeatureRef.current = feature;
 
-    // Mettre à jour state
+    // Données parcelle
+    const parcelle = {
+      reference: `${props.section || ''}${props.numero || ''}`,
+      section: props.section || '',
+      numero: props.numero || '',
+      surface: props.contenance ? Math.round(props.contenance) : null,
+      commune_code: props.commune || '',
+    };
+
     setSelected(parcelle);
 
-    // *** APPEL DU CALLBACK — remplit les champs du wizard ***
-    if (onParcelSelect) {
-      onParcelSelect({
-        reference: parcelle.reference,
-        section: parcelle.section,
-        numero: parcelle.numero,
-        surface: parcelle.surface ? Math.round(parcelle.surface) : null,
-        commune_code: parcelle.commune_code,
-        geometry: parcelle.geometry,
-      });
-    }
+    // *** REMPLIT LES CHAMPS DU WIZARD ***
+    if (onParcelSelect) onParcelSelect(parcelle);
   }
 
   return (
     <div style={{ fontFamily: 'inherit' }}>
-      {/* Barre info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <div style={{ fontSize: 11, color: '#5a5650' }}>
-          <span style={{ display: 'inline-block', width: 10, height: 10, background: '#ef4444', borderRadius: '50%', marginRight: 4, verticalAlign: 'middle' }} />
-          Votre adresse ·{' '}
-          <strong style={{ color: '#f2efe9' }}>Cliquez sur une parcelle</strong> pour la sélectionner
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: '#5a5650', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 10, height: 10, background: '#ef4444', borderRadius: '50%', display: 'inline-block', flexShrink: 0 }} />
+          Votre adresse · <strong style={{ color: '#f2efe9' }}>Cliquez sur votre parcelle</strong>
         </div>
         {loading && (
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#a07820' }}>
-            <span style={{ width: 12, height: 12, border: '2px solid rgba(160,120,32,.2)', borderTop: '2px solid #a07820', borderRadius: '50%', display: 'inline-block', animation: 'cadastre-spin .7s linear infinite' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#a07820' }}>
+            <div style={{ width: 11, height: 11, border: '2px solid rgba(160,120,32,.2)', borderTop: '2px solid #a07820', borderRadius: '50%', animation: 'cs .7s linear infinite' }} />
             Chargement parcelles IGN...
           </div>
         )}
       </div>
 
       {/* Carte */}
-      <div style={{ position: 'relative', height: 300, borderRadius: 10, overflow: 'hidden', border: '0.5px solid #2d2d3a' }}>
+      <div style={{ position: 'relative', height: 320, borderRadius: 12, overflow: 'hidden', border: '1px solid #1c1c2a', boxShadow: '0 4px 24px rgba(0,0,0,.4)' }}>
         <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
         {!mapReady && (
-          <div style={{ position: 'absolute', inset: 0, background: '#0d0d1a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 10 }}>
-            <div style={{ width: 24, height: 24, border: '2.5px solid rgba(160,120,32,.2)', borderTop: '2.5px solid #a07820', borderRadius: '50%', animation: 'cadastre-spin .7s linear infinite' }} />
-            <div style={{ fontSize: 12, color: '#5a5650' }}>Initialisation de la carte...</div>
+          <div style={{ position: 'absolute', inset: 0, background: '#0d0d1a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 999 }}>
+            <div style={{ width: 28, height: 28, border: '3px solid rgba(160,120,32,.15)', borderTop: '3px solid #a07820', borderRadius: '50%', animation: 'cs .7s linear infinite' }} />
+            <div style={{ fontSize: 12, color: '#5a5650' }}>Chargement de la carte cadastrale...</div>
           </div>
         )}
       </div>
 
-      {/* Résultat sélection */}
-      <div style={{ marginTop: 8 }}>
-        {selected ? (
-          <div style={{ padding: '12px 16px', background: 'rgba(74,222,128,.06)', border: '0.5px solid rgba(74,222,128,.25)', borderRadius: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', marginBottom: 8 }}>
-              ✓ Parcelle sélectionnée — champs mis à jour automatiquement
-            </div>
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12 }}>
-              {selected.reference && (
-                <div>
-                  <span style={{ color: '#5a5650', textTransform: 'uppercase', fontSize: 10 }}>Référence</span>
-                  <div style={{ color: '#f2efe9', fontWeight: 600, fontSize: 14 }}>{selected.reference}</div>
-                </div>
-              )}
-              {selected.surface && (
-                <div>
-                  <span style={{ color: '#5a5650', textTransform: 'uppercase', fontSize: 10 }}>Surface</span>
-                  <div style={{ color: '#f2efe9', fontWeight: 600, fontSize: 14 }}>{selected.surface} m²</div>
-                </div>
-              )}
-              {selected.commune_code && (
-                <div>
-                  <span style={{ color: '#5a5650', textTransform: 'uppercase', fontSize: 10 }}>INSEE</span>
-                  <div style={{ color: '#f2efe9', fontWeight: 600, fontSize: 14 }}>{selected.commune_code}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          !loading && (
-            <div style={{ padding: '10px 14px', background: 'rgba(160,120,32,.04)', border: '0.5px solid rgba(160,120,32,.12)', borderRadius: 8, fontSize: 11, color: '#5a5650' }}>
-              Cliquez sur votre parcelle — référence cadastrale et surface se rempliront automatiquement
-            </div>
-          )
-        )}
+      {/* Légende */}
+      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 10, color: '#3e3a34' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 14, height: 10, background: 'rgba(251,191,36,.5)', border: '2px solid #a07820', borderRadius: 2, display: 'inline-block' }} />
+          Parcelle sélectionnée
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 14, height: 10, background: 'rgba(203,213,225,.3)', border: '1.5px solid #64748b', borderRadius: 2, display: 'inline-block' }} />
+          Autres parcelles (cliquables)
+        </span>
+        <span style={{ marginLeft: 'auto', color: '#2a2a38' }}>Données cadastrales IGN · Cliquez pour changer</span>
       </div>
 
-      <style>{`@keyframes cadastre-spin { to { transform: rotate(360deg); } }`}</style>
+      {/* Résultat */}
+      {selected && (
+        <div style={{ marginTop: 10, padding: '14px 16px', background: 'linear-gradient(135deg, rgba(74,222,128,.05), rgba(160,120,32,.05))', border: '0.5px solid rgba(74,222,128,.2)', borderRadius: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+            ✓ Parcelle sélectionnée — données enregistrées
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {[
+              ['Référence cadastrale', selected.reference],
+              ['Surface terrain', selected.surface ? `${selected.surface} m²` : '—'],
+              ['Code INSEE', selected.commune_code || '—'],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <div style={{ fontSize: 10, color: '#5a5650', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 3 }}>{label}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#f2efe9' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes cs { to { transform: rotate(360deg); } } .leaflet-container { cursor: default; } .leaflet-interactive { cursor: pointer !important; }`}</style>
     </div>
   );
 }
