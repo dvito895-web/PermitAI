@@ -887,7 +887,7 @@ function WizardContent() {
 
   function handleParcelSelect(parcelle) {
   if (parcelle.reference) setField('reference_cadastrale', parcelle.reference);
-  if (parcelle.surface) setField('surface_terrain', Math.round(parcelle.surface));
+  if (parcelle.surface) setField('surface_terrain', parcelle.surface);
   if (parcelle.commune_code) setField('code_insee', parcelle.commune_code);
 }
 
