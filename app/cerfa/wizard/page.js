@@ -1,6 +1,5 @@
 'use client';
 import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
-import 'leaflet/dist/leaflet.css';
 import CadastreMap from '@/components/CadastreMap';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
