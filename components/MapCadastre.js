@@ -27,9 +27,8 @@ function ClickCatcher({ onParcelle, setLoading }) {
       const { lat, lng } = e.latlng;
       setLoading(true);
       try {
-        // API officielle IGN — coordonnées en [lng, lat] (WGS84 GeoJSON)
-        const geom = JSON.stringify({ type: 'Point', coordinates: [lng, lat] });
-        const url = `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${encodeURIComponent(geom)}&source_ign=PCI`;
+        // Appel proxy serveur (gère buffer bbox + normalisation contenance/contenancedgfip)
+        const url = `/api/cadastre-proxy?lon=${lng}&lat=${lat}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('API IGN indisponible');
         const data = await res.json();
@@ -78,8 +77,7 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
     const fetchInitialParcel = async () => {
       setLoading(true);
       try {
-        const geom = JSON.stringify({ type: 'Point', coordinates: [lon, lat] });
-        const url = `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${encodeURIComponent(geom)}&source_ign=PCI`;
+        const url = `/api/cadastre-proxy?lon=${lon}&lat=${lat}`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.features?.length > 0) {
@@ -197,7 +195,7 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
             <div>
               <div className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider mb-1">Surface</div>
               <div className="text-lg font-black text-emerald-900">
-                {parcelle.properties?.contenance ? `${Math.round(parcelle.properties.contenance)} m²` : '—'}
+                {(parcelle.properties?.contenance || parcelle.properties?.contenancedgfip) ? `${Math.round(parcelle.properties.contenance || parcelle.properties.contenancedgfip)} m²` : '—'}
               </div>
             </div>
             <div>
