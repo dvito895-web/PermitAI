@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMapEvents, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -50,7 +50,11 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Sécurité SSR : On ne monte le composant que côté client
+  // Refs anti-boucle : bloque le re-fetch lors des re-renders.
+  const initialLoadedRef = useRef(false);
+  const lastCoordsRef = useRef(null);
+
+  // Sécurité SSR : on monte le composant uniquement côté client
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -58,11 +62,13 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
   const handleParcelle = useCallback((feature) => {
     setParcelle(feature);
     const props = feature.properties || {};
+    const contenance = props.contenance || props.contenancedgfip || props.surface_m2 || 0;
     const data = {
       reference: (props.section || '') + (props.numero || ''),
       section: props.section || '',
       numero: props.numero || '',
-      surface: props.contenance ? Math.round(props.contenance) : null,
+      surface: contenance > 0 ? Math.round(contenance) : null,
+      commune: props.nom_com || '',
       commune_code: props.code_insee || `${props.code_dep || ''}${props.code_com || ''}`,
       idu: props.idu || '',
       geometry: feature.geometry,
@@ -70,10 +76,15 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
     if (onParcelSelect) onParcelSelect(data);
   }, [onParcelSelect]);
 
-  // Charger la parcelle de l'adresse au montage (Côté client uniquement)
+  // Charger la parcelle de l'adresse au montage UNIQUEMENT (anti-boucle via useRef).
   useEffect(() => {
     if (!mounted || !lat || !lon) return;
-    
+
+    const coordsKey = `${lat},${lon}`;
+    if (initialLoadedRef.current && lastCoordsRef.current === coordsKey) return;
+    initialLoadedRef.current = true;
+    lastCoordsRef.current = coordsKey;
+
     const fetchInitialParcel = async () => {
       setLoading(true);
       try {
@@ -91,7 +102,8 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
     };
 
     fetchInitialParcel();
-  }, [mounted, lat, lon, handleParcelle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, lat, lon]);
 
   if (!mounted) return <div className="w-full h-80 bg-gray-100 animate-pulse rounded-xl" />;
 
@@ -195,7 +207,7 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
             <div>
               <div className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider mb-1">Surface</div>
               <div className="text-lg font-black text-emerald-900">
-                {(parcelle.properties?.contenance || parcelle.properties?.contenancedgfip) ? `${Math.round(parcelle.properties.contenance || parcelle.properties.contenancedgfip)} m²` : '—'}
+                {(parcelle.properties?.contenance || parcelle.properties?.contenancedgfip || parcelle.properties?.surface_m2) ? `${Math.round(parcelle.properties.contenance || parcelle.properties.contenancedgfip || parcelle.properties.surface_m2)} m²` : '—'}
               </div>
             </div>
             <div>
