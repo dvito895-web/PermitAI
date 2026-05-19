@@ -49,18 +49,29 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
   const [parcelle, setParcelle] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [flashActive, setFlashActive] = useState(false);
 
   // Refs anti-boucle : bloque le re-fetch lors des re-renders.
   const initialLoadedRef = useRef(false);
   const lastCoordsRef = useRef(null);
+  const mapRef = useRef(null);
+  const flashTimerRef = useRef(null);
 
   // Sécurité SSR : on monte le composant uniquement côté client
   useEffect(() => {
     setMounted(true);
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
   }, []);
 
   const handleParcelle = useCallback((feature) => {
     setParcelle(feature);
+    // Flash visuel de confirmation : opacity 0.8 → 0.5 sur 300ms
+    setFlashActive(true);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = setTimeout(() => setFlashActive(false), 300);
+
     const props = feature.properties || {};
     const contenance = props.contenance || props.contenancedgfip || props.surface_m2 || 0;
     const data = {
@@ -76,14 +87,27 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
     if (onParcelSelect) onParcelSelect(data);
   }, [onParcelSelect]);
 
-  // Charger la parcelle de l'adresse au montage UNIQUEMENT (anti-boucle via useRef).
+  // FIX 2 — Recentrage carte + reload parcelle dès que l'adresse (lat/lon) change.
   useEffect(() => {
     if (!mounted || !lat || !lon) return;
-
     const coordsKey = `${lat},${lon}`;
-    if (initialLoadedRef.current && lastCoordsRef.current === coordsKey) return;
+
+    // Si les coords ont VRAIMENT changé (nouvelle adresse), on autorise un nouveau cycle complet
+    if (lastCoordsRef.current !== coordsKey) {
+      lastCoordsRef.current = coordsKey;
+      initialLoadedRef.current = false;
+      setParcelle(null);
+
+      // Recentre la carte si elle est déjà montée
+      if (mapRef.current) {
+        try { mapRef.current.setView([lat, lon], 18, { animate: true, duration: 0.5 }); }
+        catch (e) { /* map pas prête */ }
+      }
+    }
+
+    // Charge la parcelle une seule fois par jeu de coords
+    if (initialLoadedRef.current) return;
     initialLoadedRef.current = true;
-    lastCoordsRef.current = coordsKey;
 
     const fetchInitialParcel = async () => {
       setLoading(true);
@@ -136,6 +160,7 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
       {/* Conteneur Carte avec Ombre Portée */}
       <div className="h-80 rounded-xl overflow-hidden border border-gray-200 shadow-xl shadow-gray-100 relative z-0">
         <MapContainer
+          ref={mapRef}
           center={[lat || 46.603, lon || 1.888]}
           zoom={lat ? 18 : 6}
           className="w-full h-full"
@@ -170,13 +195,14 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
 
           {parcelle && (
             <GeoJSON
-              key={parcelle.properties?.idu || 'selected'}
+              key={(parcelle.properties?.idu || 'selected') + (flashActive ? '-flash' : '')}
               data={parcelle}
               style={{
-                color: '#D97706', // Amber-600
-                weight: 3,
-                fillColor: '#FBBF24', // Amber-400
-                fillOpacity: 0.4,
+                color: '#D97706',           // Amber-600 — bordure dorée
+                weight: 4,                  // Bordure plus épaisse
+                fillColor: '#FBBF24',       // Amber-400 — remplissage doré
+                fillOpacity: flashActive ? 0.8 : 0.5,  // Flash 0.8 → 0.5 (300ms)
+                dashArray: null,
               }}
             />
           )}
@@ -185,34 +211,34 @@ export default function MapCadastre({ lat, lon, onParcelSelect }) {
 
       {/* Résultat de Sélection Premium */}
       {parcelle && (
-        <div className="mt-2 p-5 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all animate-in fade-in slide-in-from-top-2">
+        <div className="mt-2 p-5 bg-emerald-50/50 border border-emerald-100 rounded-xl transition-all animate-in fade-in slide-in-from-top-2" style={{ background: '#0a1a14', borderColor: 'rgba(74,222,128,.25)' }}>
           <div className="flex items-center gap-2 mb-4">
             <div className="bg-emerald-500 text-white p-1 rounded-full">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
+            <span style={{ fontSize: 10, color: '#4ade80', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.15em' }}>
               Parcelle Identifiée — Données Importées
             </span>
           </div>
-          
+
           <div className="grid grid-cols-3 gap-6">
             <div>
-              <div className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider mb-1">Référence</div>
-              <div className="text-lg font-black text-emerald-900">
+              <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Référence</div>
+              <div style={{ fontSize: 18, color: '#FFFFFF', fontWeight: 900, letterSpacing: '-.2px' }}>
                 {(parcelle.properties?.section || '') + (parcelle.properties?.numero || '')}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider mb-1">Surface</div>
-              <div className="text-lg font-black text-emerald-900">
+              <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Surface</div>
+              <div style={{ fontSize: 18, color: '#FFFFFF', fontWeight: 900, letterSpacing: '-.2px' }}>
                 {(parcelle.properties?.contenance || parcelle.properties?.contenancedgfip || parcelle.properties?.surface_m2) ? `${Math.round(parcelle.properties.contenance || parcelle.properties.contenancedgfip || parcelle.properties.surface_m2)} m²` : '—'}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider mb-1">Code INSEE</div>
-              <div className="text-lg font-black text-emerald-900">
+              <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Code INSEE</div>
+              <div style={{ fontSize: 18, color: '#FFFFFF', fontWeight: 900, letterSpacing: '-.2px' }}>
                 {parcelle.properties?.code_insee || `${parcelle.properties?.code_dep || ''}${parcelle.properties?.code_com || ''}`}
               </div>
             </div>
