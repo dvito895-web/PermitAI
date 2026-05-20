@@ -51,6 +51,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/address(.*)',
   '/api/plu/demo(.*)',
   '/api/stripe/one-time(.*)',
+  '/api/stripe/portal(.*)',
+  '/api/me/subscription(.*)',
   '/api/rapport/(.*)',
 ]);
 

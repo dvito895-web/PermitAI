@@ -91,20 +91,19 @@ Permettre à tout particulier ou pro de générer un dossier d'urbanisme complet
 - Emergent LLM Key validée pour vision + texte (logs : `ai_powered=true, provider=emergent, model=claude-sonnet-4-5-20250929`).
 
 ## 6) Backlog priorisé
-### P0 — Reste à faire
-- (vide pour l'instant)
+### Phase B (prochaine itération — demandée par l'utilisateur)
+- **Refonte complète step 5 du wizard** : pour chaque CERFA (PCMI 1-8, DP 1-7, PD 1-4, CU), créer des composants SVG dédiés au lieu du `PlanCoupePro` générique. Niveau de qualité matchant les PDFs PCMI joints (SITUATION, PDM, LOCAL PISCINE, COUPE).
 
 ### P1
-- **Vraie géométrie IGN voisins** : `batimentsData.voisins` n'est pas peuplé par `/api/batiments` → enrichir pour que `PlanMassePro` affiche les bâtiments mitoyens.
-- Intégration Resend (welcome + confirmation analyse) — clé valide requise.
-- Page `/dashboard/billing` : afficher status Subscription, plan actif, crédits restants, bouton "Customer portal" Stripe.
-- Indexation PLU 34 970 communes en arrière-plan (`scripts/index_ultra_fast.py`).
-- Photomontage d'insertion paysagère (PCMI6) via Claude image generation (nano-banana).
+- Resend emails (welcome + confirmation analyse) — clé valide requise.
+- Indexation PLU 34 970 communes en arrière-plan : exécuter `scripts/index_plu_production_v2.py` (déjà écrit).
+- Géocodage inversé : depuis lat/lon, retrouver l'adresse exacte pour pré-remplir le wizard.
 
 ### P2
-- Découper `app/cerfa/wizard/page.js` (1300+ lignes) en sous-composants `components/wizard/Step{1..6}.js`.
-- Tests E2E Playwright complets (toutes étapes 1 → 6).
+- Découper `app/cerfa/wizard/page.js` (1400+ lignes) en sous-composants `components/wizard/Step{1..6}.js`.
+- Tests E2E Playwright complets avec session Clerk (nécessite test user).
 - Internationalisation (anglais pour Belgique francophone + Suisse romande).
+- Streamer les images base64 du photomontage au lieu de retourner ~1MB de JSON.
 
 ## 7) Variables d'environnement
 | Clé | Usage | Statut |

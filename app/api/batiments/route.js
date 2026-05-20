@@ -15,13 +15,21 @@ export async function GET(request) {
     // 1. Bâtiments existants (BDTOPO WFS)
     const batUrl = `https://wxs.ign.fr/topographie/geoportail/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&BBOX=${latF-delta},${lonF-delta},${latF+delta},${lonF+delta}&SRSNAME=EPSG:4326&OUTPUTFORMAT=application/json&COUNT=80`;
 
-    // 2. Parcelle principale (au point exact)
-    const parcelMainUrl = `https://apicarto.ign.fr/api/cadastre/parcelle?lon=${lon}&lat=${lat}&_limit=3`;
+    // 2. Parcelle principale — utilise geom=Polygon (le seul filtre spatial fiable d'IGN apicarto)
+    const dMain = 0.0005; // ~50m bbox → tolère légers décalages géocodeurs
+    const geomMain = encodeURIComponent(JSON.stringify({
+      type: 'Polygon',
+      coordinates: [[[lonF - dMain, latF - dMain], [lonF + dMain, latF - dMain], [lonF + dMain, latF + dMain], [lonF - dMain, latF + dMain], [lonF - dMain, latF - dMain]]],
+    }));
+    const parcelMainUrl = `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${geomMain}&_limit=10`;
 
-    // 3. PARCELLES VOISINES — recherche dans une BBOX autour du point (pour avoir les mitoyennes)
-    const deltaVoisins = 0.0007; // ~70m → environ 4-8 parcelles voisines en zone pavillonnaire
-    const bbox = [lonF - deltaVoisins, latF - deltaVoisins, lonF + deltaVoisins, latF + deltaVoisins].join(',');
-    const parcelsBboxUrl = `https://apicarto.ign.fr/api/cadastre/parcelle?bbox=${bbox}&_limit=30`;
+    // 3. PARCELLES VOISINES — bbox plus large (~70m)
+    const dVoisins = 0.0007;
+    const geomVoisins = encodeURIComponent(JSON.stringify({
+      type: 'Polygon',
+      coordinates: [[[lonF - dVoisins, latF - dVoisins], [lonF + dVoisins, latF - dVoisins], [lonF + dVoisins, latF + dVoisins], [lonF - dVoisins, latF + dVoisins], [lonF - dVoisins, latF - dVoisins]]],
+    }));
+    const parcelsBboxUrl = `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${geomVoisins}&_limit=30`;
 
     // 4. PLU
     const pluUrl = `https://apicarto.ign.fr/api/gpu/zone-urba?lon=${lon}&lat=${lat}&_limit=1`;
@@ -45,21 +53,33 @@ export async function GET(request) {
       }));
     }
 
-    // ── Parcelle principale ──
+    // ── Parcelle principale ── (sélectionne la PLUS PROCHE du point, pas la première)
     let parcelle = null;
-    let mainParcelId = null; // pour exclure des voisins
+    let mainParcelId = null;
     if (parcelMainRes.status === 'fulfilled' && parcelMainRes.value.ok) {
       const d = await parcelMainRes.value.json();
       if (d.features?.length > 0) {
-        const f = d.features[0];
+        // Calcul du centroïde et de la distance pour chaque feature
+        const scored = d.features.map(f => {
+          const coords = (f.geometry?.type === 'Polygon' ? f.geometry.coordinates[0]
+                       : f.geometry?.type === 'MultiPolygon' ? f.geometry.coordinates[0]?.[0]
+                       : []) || [];
+          if (!coords.length) return { f, dist: Infinity };
+          const cx = coords.reduce((s, c) => s + c[0], 0) / coords.length;
+          const cy = coords.reduce((s, c) => s + c[1], 0) / coords.length;
+          const dist = Math.hypot(cx - lonF, cy - latF);
+          return { f, dist };
+        }).sort((a, b) => a.dist - b.dist);
+        const f = scored[0].f;
         const p = f.properties || {};
-        mainParcelId = p.idu || `${p.commune || ''}-${p.section || ''}-${p.numero || ''}`;
+        mainParcelId = p.idu || `${p.code_com || p.commune || ''}-${p.section || ''}-${p.numero || ''}`;
         parcelle = {
           geometry: f.geometry,
           section: p.section,
           numero: p.numero,
           contenance: p.contenance,
-          commune: p.commune,
+          commune: p.nom_com || p.commune,
+          code_com: p.code_com,
           reference: mainParcelId,
         };
       }
@@ -72,10 +92,10 @@ export async function GET(request) {
       voisins = (d.features || [])
         .filter(f => {
           const p = f.properties || {};
-          const id = p.idu || `${p.commune || ''}-${p.section || ''}-${p.numero || ''}`;
-          return id !== mainParcelId; // exclure la parcelle principale
+          const id = p.idu || `${p.code_com || p.commune || ''}-${p.section || ''}-${p.numero || ''}`;
+          return id !== mainParcelId;
         })
-        .slice(0, 12) // limiter à 12 voisins pour le rendu
+        .slice(0, 12)
         .map(f => {
           const p = f.properties || {};
           return {
@@ -83,6 +103,7 @@ export async function GET(request) {
             section: p.section,
             numero: p.numero,
             contenance: p.contenance,
+            commune: p.nom_com || p.commune,
             reference: p.idu || `${p.section || ''}-${p.numero || ''}`,
           };
         });
