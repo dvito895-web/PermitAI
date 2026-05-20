@@ -7,7 +7,7 @@ import { llmCall, isLlmConfigured } from '../../../../lib/llm';
 const MODEL = 'claude-sonnet-4-5-20250929';
 
 async function generateWithClaude(data) {
-  if (!isLlmConfigured()) return null;
+  if (!isLlmConfigured()) return { text: null, provider: null };
   const prompt = `Tu es un expert en droit de l'urbanisme français. Rédige une NOTICE DESCRIPTIVE complète (article R.431-8 Code de l'urbanisme) pour un CERFA ${data.type_cerfa || 'PC/DP'}.
 
 DEMANDEUR : ${data.prenom || ''} ${data.nom || ''}
@@ -29,9 +29,9 @@ Ton administratif français, précis, prêt à imprimer. Pas de markdown, juste 
   const r = await llmCall({ content: prompt, model: MODEL, maxTokens: 2000 });
   if (!r.ok) {
     console.error('[notice] LLM error', r.provider, r.error);
-    return null;
+    return { text: null, provider: r.provider };
   }
-  return r.text || null;
+  return { text: r.text || null, provider: r.provider };
 }
 
 function templateNotice(data) {
@@ -85,15 +85,16 @@ export async function POST(request) {
       return Response.json({ error: 'adresse_terrain et nature_travaux requis' }, { status: 400 });
     }
 
-    // 1) Tenter Claude Opus 4.5 ; 2) sinon template administratif fiable.
-    const aiNotice = await generateWithClaude(data);
-    const notice = aiNotice || templateNotice(data);
+    // 1) Tenter Claude (Emergent ou Anthropic) ; 2) sinon template administratif fiable.
+    const ai = await generateWithClaude(data);
+    const notice = ai.text || templateNotice(data);
 
     return Response.json({
       notice,
       cerfa_type: data.type_cerfa,
-      ai_powered: !!aiNotice,
-      model: aiNotice ? MODEL : null,
+      ai_powered: !!ai.text,
+      provider: ai.provider || null,
+      model: ai.text ? MODEL : null,
       generated_at: new Date().toISOString(),
     });
   } catch (e) {
