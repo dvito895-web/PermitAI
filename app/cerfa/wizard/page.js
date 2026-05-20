@@ -1,8 +1,10 @@
 'use client';
-import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
+import { useState, useRef, useEffect, Suspense, useCallback, useMemo } from 'react';
 import CadastreMap from '../../../components/MapWrapper';
 import LegalAlerts from '../../../components/LegalAlerts';
 import CerfaPiecesList from '../../../components/CerfaPiecesList';
+import PlanMassePro from '../../../components/PlanMassePro';
+import { getPiecesForCerfa, CERFA_META, recommendCerfa, cuType as cuTypeFn } from '../../../lib/cerfaLegalRules';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -881,11 +883,52 @@ function WizardContent() {
     surface_creee:params.get('surface')||'',
     surface_plancher:'',emprise_sol:'',hauteur_projet:'',
     destination:'Habitation',materiaux_facade:'',materiaux_toiture:'',
-    description_libre:'',zone_abf:false,
+    description_libre:'',zone_abf:false,zone_argile:false,dans_spr:false,
+    surface_demolie:'',surface_bassin:'',hauteur_abri:'',cu_type:'CUa',
+    est_personne_morale:false,est_erp:false,annee_construction:'',assainissement:'',
   });
 
   const setField = useCallback((k,v)=>setForm(f=>({...f,[k]:v})),[]);
   const savePiece = useCallback((data,code)=>setPiecesData(prev=>({...prev,[code]:data})),[]);
+
+  // ── Pièces dynamiques selon CERFA + contexte (PLU, ABF, démolition, piscine, ERP…)
+  const ctxLegal = useMemo(() => ({
+    nature_travaux: form.nature_travaux,
+    surface_creee: form.surface_creee || form.surface_plancher,
+    surface_demolie: form.surface_demolie,
+    zone_abf: !!form.zone_abf,
+    dans_spr: !!form.dans_spr,
+    est_personne_morale: !!form.est_personne_morale,
+    est_proprietaire: form.est_proprietaire !== false,
+    piscine: planAnalysis?.pieces?.piscine,
+    surface_bassin: form.surface_bassin,
+    hauteur_abri: form.hauteur_abri,
+    est_erp: !!form.est_erp,
+    cu_type: form.cu_type,
+    annee_construction: form.annee_construction,
+    assainissement: form.assainissement,
+    zone_argile: !!form.zone_argile,
+    clos_couvert: !!form.clos_couvert,
+  }), [form, planAnalysis]);
+
+  const dynamicPieces = useMemo(() => {
+    const cerfaKey = (cerfaId || '').replace('*', '').slice(0, 5);
+    if (!cerfaKey) return [];
+    return getPiecesForCerfa(cerfaKey, ctxLegal);
+  }, [cerfaId, ctxLegal]);
+
+  // Mapping code/source → composant générateur
+  const getGenerator = (p) => {
+    const c = p.code.toUpperCase();
+    if (p.source === 'auto_ign')                            return 'plan_situation';
+    if (p.source === 'dessin_interactif')                   return 'plan_masse_pro';
+    if (c.includes('3') && p.source === 'auto_analyse')     return 'plan_coupe';
+    if ((c.includes('4') && /facade|toit/i.test(p.intitule)) || (c.includes('5') && p.source === 'auto_analyse')) return 'plan_facade';
+    if (p.source === 'ia_claude' && /notice|descriptive/i.test(p.intitule)) return 'notice_ia';
+    if (p.source === 'ia_claude' && /insertion|graphique/i.test(p.intitule)) return 'insertion_paysagere';
+    if (p.source === 'a_uploader' || p.source === 'photo')  return 'upload';
+    return 'upload';
+  };
 
   function handleParcelSelect(parcelle) {
   if (parcelle.reference) setField('reference_cadastrale', parcelle.reference);
@@ -950,8 +993,9 @@ ${planAnalysis?`<h2>🤖 Analyse IA du plan</h2>
 <div class="f"><span class="l">Pièces détectées</span><span class="v">${planAnalysis.elements.pieces.join(', ')}</span></div>
 <div class="f"><span class="l">Type toiture</span><span class="v">${planAnalysis.elements.type_toiture} — Pente ${planAnalysis.elements.pente_toiture_estimee}°</span></div>
 <div class="f"><span class="l">Matériaux détectés</span><span class="v">${planAnalysis.materiaux_detectes.murs} / ${planAnalysis.materiaux_detectes.toiture}</span></div>`:''}
+${(()=>{const c=CERFA_META[(cerfaId||'').slice(0,5)]||cerfa||CERFA_DATA['13406']; return c;})() ? '' : ''}
 <h2>📎 Pièces</h2>
-${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `<div class="${done?'ok':'nok'}"><strong>${done?'✅':'❌'} ${p.code} — ${p.nom}</strong></div>`;}).join('')}
+${dynamicPieces.map(p=>{const done=piecesData[p.code]||p.source==='auto_ign';return `<div class="${done?'ok':'nok'}"><strong>${done?'✅':'❌'} ${p.code} — ${p.intitule}</strong></div>`;}).join('')}
 <div class="footer">PermitAI · permitai.eu · ${new Date().toLocaleDateString('fr-FR')}</div>
 </body></html>`;
     const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -1000,17 +1044,19 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
             <div>
               <h2 style={{ color:'#f2efe9',fontSize:15,fontWeight:500,marginBottom:20 }}>Quel est votre projet ?</h2>
               <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
-                {[['construction','🏠','Construction neuve','13406','Permis de construire PC'],
+                {[['construction','🏠','Construction neuve','13406','Permis de construire PCMI'],
                   ['extension','📐','Extension de maison','auto','< 20m² DP · 20-150m² PC'],
-                  ['piscine','🏊','Piscine','13703','Déclaration préalable'],
-                  ['cloture','🚧','Clôture','13703','Déclaration préalable'],
-                  ['ravalement','🎨','Ravalement façade','13703','Déclaration préalable'],
+                  ['piscine','🏊','Piscine','auto','≤10m² libre · ≤100m² DP · >100m² PC'],
+                  ['cloture','🚧','Clôture','13404','Déclaration préalable'],
+                  ['ravalement','🎨','Ravalement façade','13404','Déclaration préalable'],
                   ['abri','🏚','Abri / Garage','auto','< 20m² DP · > 20m² PC'],
-                  ['certificat','📜',"Certificat d'urbanisme",'13410','CUa ou CUb'],
-                  ['doc','🚧','Ouverture chantier','13414','DOC obligatoire'],
+                  ['demolition','💣','Démolition','13405','Permis de démolir'],
+                  ['certificat','📜',"Certificat d'urbanisme",'13702','CUa ou CUb'],
+                  ['doc','🚧','Ouverture chantier','13407','DOC obligatoire'],
                   ['daact','✅','Achèvement travaux','13408','DAACT 90 jours'],
                 ].map(([val,icon,label,id,desc])=>(
                   <button key={val} onClick={()=>{ setField('nature_travaux',val); if(id!=='auto') setCerfaId(id); setStep(2); }}
+                    data-testid={`project-type-${val}`}
                     style={{ display:'flex',alignItems:'flex-start',gap:10,padding:'12px 14px',background:form.nature_travaux===val?'rgba(160,120,32,.08)':'#111118',border:`0.5px solid ${form.nature_travaux===val?'#a07820':'#1c1c2a'}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',color:'#f2efe9',textAlign:'left' }}>
                     <span style={{ fontSize:20,flexShrink:0 }}>{icon}</span>
                     <div><div style={{ fontSize:13,fontWeight:500,marginBottom:2 }}>{label}</div><div style={{ fontSize:10,color:'#3e3a34' }}>{desc}</div></div>
@@ -1020,12 +1066,82 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
               {(form.nature_travaux==='extension'||form.nature_travaux==='abri')&&(
                 <div style={{ marginTop:12,padding:'12px 14px',background:'#111118',borderRadius:10 }}>
                   <label style={lStyle}>Surface créée (m²)</label>
-                  <input type="number" value={form.surface_creee}
+                  <input type="number" value={form.surface_creee} data-testid="input-surface-creee"
                     onChange={e=>{ const s=e.target.value; setField('surface_creee',s); const d=detectCerfa(s,form.nature_travaux); if(d) setCerfaId(d); }}
                     placeholder="Ex: 25" style={{ ...iStyle,width:120 }} />
                   {form.surface_creee&&<div style={{ marginTop:8,fontSize:12,color:parseInt(form.surface_creee)>150?'#ef4444':'#a07820',fontWeight:500 }}>
                     → {parseInt(form.surface_creee)<=20?'CERFA 13703 — Déclaration préalable (1 mois)':parseInt(form.surface_creee)<=150?'CERFA 13406 — Permis de construire (2 mois)':'⚖️ Architecte obligatoire > 150m²'}
                   </div>}
+                </div>
+              )}
+
+              {/* PISCINE — bassin + abri pour détection PC/DP/libre */}
+              {form.nature_travaux==='piscine'&&(
+                <div style={{ marginTop:12,padding:'12px 14px',background:'#111118',borderRadius:10,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+                  <div>
+                    <label style={lStyle}>Surface bassin (m²)</label>
+                    <input type="number" value={form.surface_bassin} data-testid="input-surface-bassin"
+                      onChange={e=>{
+                        const sb=parseFloat(e.target.value)||0;
+                        setField('surface_bassin',e.target.value);
+                        const rec=recommendCerfa({ nature_travaux:'piscine', surface_bassin:sb, hauteur_abri:parseFloat(form.hauteur_abri)||0, dans_spr:form.dans_spr });
+                        if(rec.num) setCerfaId(rec.num.slice(0,5));
+                      }}
+                      placeholder="Ex: 32" style={iStyle} />
+                  </div>
+                  <div>
+                    <label style={lStyle}>Hauteur abri (m)</label>
+                    <input type="number" step="0.1" value={form.hauteur_abri} data-testid="input-hauteur-abri"
+                      onChange={e=>{
+                        const ha=parseFloat(e.target.value)||0;
+                        setField('hauteur_abri',e.target.value);
+                        const rec=recommendCerfa({ nature_travaux:'piscine', surface_bassin:parseFloat(form.surface_bassin)||0, hauteur_abri:ha, dans_spr:form.dans_spr });
+                        if(rec.num) setCerfaId(rec.num.slice(0,5));
+                      }}
+                      placeholder="0 si pas d'abri" style={iStyle} />
+                  </div>
+                  {form.surface_bassin&&(()=>{const rec=recommendCerfa({ nature_travaux:'piscine', surface_bassin:parseFloat(form.surface_bassin)||0, hauteur_abri:parseFloat(form.hauteur_abri)||0, dans_spr:form.dans_spr });return(
+                    <div style={{ gridColumn:'1/-1',fontSize:12,color:rec.num?'#a07820':'#4ade80',fontWeight:500 }}>→ {rec.short} {rec.delai!=='—'?` · Délai ${rec.delai}`:''}</div>
+                  );})()}
+                </div>
+              )}
+
+              {/* DÉMOLITION — surface démolie + diagnostic amiante */}
+              {form.nature_travaux==='demolition'&&(
+                <div style={{ marginTop:12,padding:'12px 14px',background:'#111118',borderRadius:10,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+                  <div>
+                    <label style={lStyle}>Surface démolie (m²)</label>
+                    <input type="number" value={form.surface_demolie} data-testid="input-surface-demolie"
+                      onChange={e=>setField('surface_demolie',e.target.value)} placeholder="Ex: 40" style={iStyle} />
+                  </div>
+                  <div>
+                    <label style={lStyle}>Année construction</label>
+                    <input type="number" value={form.annee_construction} data-testid="input-annee-construction"
+                      onChange={e=>setField('annee_construction',e.target.value)} placeholder="Ex: 1985" style={iStyle} />
+                  </div>
+                  {form.annee_construction&&parseInt(form.annee_construction)<1997&&(
+                    <div style={{ gridColumn:'1/-1',fontSize:11,color:'#ef4444',background:'rgba(239,68,68,.08)',padding:'8px 12px',borderRadius:6 }}>
+                      ⚠️ Bâtiment {form.annee_construction} → diagnostic <strong>amiante obligatoire</strong> (PD7).
+                      {parseInt(form.annee_construction)<1949 && ' Diagnostic plomb également requis.'}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CERTIFICAT — CUa ou CUb */}
+              {form.nature_travaux==='certificat'&&(
+                <div style={{ marginTop:12,padding:'12px 14px',background:'#111118',borderRadius:10 }}>
+                  <label style={lStyle}>Type de certificat</label>
+                  <div style={{ display:'flex',gap:8 }}>
+                    <button onClick={()=>setField('cu_type','CUa')} data-testid="cu-type-a"
+                      style={{ flex:1,padding:'10px',background:form.cu_type==='CUa'?'rgba(160,120,32,.15)':'#0a0a14',border:`0.5px solid ${form.cu_type==='CUa'?'#a07820':'#1c1c2a'}`,borderRadius:8,color:form.cu_type==='CUa'?'#e8b420':'#c4bfb8',cursor:'pointer',fontSize:12,textAlign:'left',fontFamily:'inherit' }}>
+                      <strong>CUa</strong> — Informatif<br/><span style={{ fontSize:10,color:'#5a5650' }}>Règles, taxes, servitudes · 1 mois</span>
+                    </button>
+                    <button onClick={()=>setField('cu_type','CUb')} data-testid="cu-type-b"
+                      style={{ flex:1,padding:'10px',background:form.cu_type==='CUb'?'rgba(160,120,32,.15)':'#0a0a14',border:`0.5px solid ${form.cu_type==='CUb'?'#a07820':'#1c1c2a'}`,borderRadius:8,color:form.cu_type==='CUb'?'#e8b420':'#c4bfb8',cursor:'pointer',fontSize:12,textAlign:'left',fontFamily:'inherit' }}>
+                      <strong>CUb</strong> — Opérationnel<br/><span style={{ fontSize:10,color:'#5a5650' }}>Faisabilité projet · 2 mois</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1138,15 +1254,18 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
           {step===5&&(
             <div>
               <h2 style={{ color:'#f2efe9',fontSize:15,fontWeight:500,marginBottom:6 }}>📐 Documents architecturaux</h2>
-              <p style={{ fontSize:12,color:'#5a5650',marginBottom:20 }}>Tous les plans sont générés depuis votre plan uploadé et l'analyse IA — comme un architecte.</p>
+              <p style={{ fontSize:12,color:'#5a5650',marginBottom:20 }}>
+                Liste de pièces dynamique selon le CERFA <strong style={{color:'#e8b420'}}>{cerfaId || '—'}</strong> et le contexte du projet
+                ({dynamicPieces.length} pièce{dynamicPieces.length>1?'s':''} requise{dynamicPieces.length>1?'s':''}).
+              </p>
 
               {/* Vue d'ensemble — jauge complétion + liste compacte */}
-              {cerfa && (
+              {cerfaId && (
                 <div style={{ marginBottom: 20 }}>
                   <CerfaPiecesList
                     cerfaNum={cerfaId}
-                    estNeuf={form.nature_travaux === 'construction_neuve'}
-                    statuses={Object.fromEntries((cerfa?.pieces || []).map(p => [p.code, (piecesData[p.code] || p.generation==='auto') ? (p.generation === 'upload' || p.generation === 'photo' ? 'UPLOAD' : 'GENERE') : 'EN_ATTENTE']))}
+                    ctx={ctxLegal}
+                    statuses={Object.fromEntries(dynamicPieces.map(p => [p.code, (piecesData[p.code] || p.source==='auto_ign') ? (p.source === 'a_uploader' || p.source === 'photo' ? 'UPLOAD' : 'GENERE') : 'EN_ATTENTE']))}
                   />
                 </div>
               )}
@@ -1157,44 +1276,55 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
                 </div>
               )}
               <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
-                {cerfa?.pieces.map((p,i)=>(
-                  <div key={i} style={{ background:'#111118',border:`0.5px solid ${piecesData[p.code]||p.generation==='auto'?'rgba(74,222,128,.3)':'#1c1c2a'}`,borderRadius:12,padding:16 }}>
-                    <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:12 }}>
+                {dynamicPieces.map((p,i)=>{
+                  const gen = getGenerator(p);
+                  const isReady = piecesData[p.code] || gen === 'plan_situation';
+                  return (
+                  <div key={i} data-testid={`piece-block-${p.code}`} style={{ background:'#111118',border:`0.5px solid ${isReady?'rgba(74,222,128,.3)':'#1c1c2a'}`,borderRadius:12,padding:16 }}>
+                    <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap' }}>
                       <span style={{ fontSize:14,fontWeight:700,color:'#e8b420' }}>{p.code}</span>
-                      <span style={{ fontSize:13,fontWeight:500,color:'#f2efe9' }}>{p.nom}</span>
-                      {p.obligatoire&&<span style={{ fontSize:10,padding:'1px 7px',background:'rgba(239,68,68,.1)',color:'#ef4444',borderRadius:20 }}>Obligatoire</span>}
+                      <span style={{ fontSize:13,fontWeight:500,color:'#f2efe9' }}>{p.intitule}</span>
+                      {p.obligatoire===true&&<span style={{ fontSize:10,padding:'1px 7px',background:'rgba(239,68,68,.1)',color:'#ef4444',borderRadius:20 }}>Obligatoire</span>}
                       <span style={{ fontSize:10,padding:'1px 7px',background:'rgba(160,120,32,.1)',color:'#a07820',borderRadius:20 }}>
-                        {p.generation==='auto'?'🤖 Auto IGN':p.generation==='ai_masse'?'🤖 IA + Cadastre':p.generation==='ai_coupe'?'🤖 IA Coupe':p.generation==='ai_facade'?'🤖 IA Façade':p.generation==='ai_notice'?'🤖 IA Notice':'📁 Upload'}
+                        {gen==='plan_situation'?'🤖 Auto IGN':gen==='plan_masse_pro'?'🤖 Plan masse pro':gen==='plan_coupe'?'🤖 IA Coupe':gen==='plan_facade'?'🤖 IA Façade':gen==='notice_ia'?'🤖 IA Notice':gen==='insertion_paysagere'?'📁 Photomontage':'📁 Upload'}
                       </span>
-                      {(piecesData[p.code]||p.generation==='auto')&&<span style={{ fontSize:10,padding:'1px 7px',background:'rgba(74,222,128,.1)',color:'#4ade80',borderRadius:20,marginLeft:'auto' }}>✓ Prêt</span>}
+                      {isReady&&<span style={{ fontSize:10,padding:'1px 7px',background:'rgba(74,222,128,.1)',color:'#4ade80',borderRadius:20,marginLeft:'auto' }}>✓ Prêt</span>}
                     </div>
+                    <div style={{ fontSize:11,color:'#5a5650',marginBottom:10 }}>{p.description}</div>
 
-                    {p.generation==='auto'&&(
+                    {gen==='plan_situation'&&(
                       planData?<div>
                         <div style={{ fontSize:11,color:'#4ade80',marginBottom:8 }}>✅ Plan de situation généré — données IGN officielles</div>
-                        <iframe src={planData.embed_url} width="100%" height="180" style={{ border:'none',borderRadius:8,marginBottom:8 }} title="Plan situation" />
+                        <iframe src={planData.embed_url} width="100%" height="200" style={{ border:'none',borderRadius:8,marginBottom:8 }} title="Plan situation" />
                         <a href={planData.geoportail} target="_blank" rel="noreferrer" style={{ fontSize:11,padding:'6px 12px',background:'#a07820',color:'#fff',borderRadius:6,textDecoration:'none' }}>Géoportail → imprimer PDF</a>
-                        <div style={{ fontSize:10,color:'#3e3a34',marginTop:6 }}>💡 Géoportail → Cmd+P → Enregistrer PDF</div>
                       </div>:<div style={{ fontSize:11,color:'#5a5650' }}>Entrez une adresse à l'étape Terrain.</div>
                     )}
-                    {p.generation==='ai_masse'&&<PlanMasseArchi analysis={planAnalysis} planData={planData} parcelData={batimentsData?.parcelle} pluRegles={batimentsData?.regles} onSave={savePiece} />}
-                    {p.generation==='ai_coupe'&&<PlanCoupeArchi analysis={planAnalysis} batimentsData={batimentsData} pluRegles={batimentsData?.regles} onSave={savePiece} />}
-                    {p.generation==='ai_facade'&&<FacadeArchi analysis={planAnalysis} onSave={savePiece} />}
-                    {p.generation==='ai_notice'&&<NoticeArchi analysis={planAnalysis} formData={form} cerfaId={cerfaId} onSave={savePiece} />}
-                    {(p.generation==='upload'||p.generation==='photo')&&<PhotoUploader code={p.code} description={p.description||p.nom} onSave={savePiece} />}
+                    {gen==='plan_masse_pro'&&<PlanMassePro
+                      addrData={addrCoords}
+                      batimentsData={batimentsData}
+                      analysis={planAnalysis}
+                      formData={form}
+                      cerfaId={cerfaId}
+                      onSave={(svg,fmt)=>savePiece(svg,p.code)} />}
+                    {gen==='plan_coupe'&&<PlanCoupeArchi analysis={planAnalysis} batimentsData={batimentsData} pluRegles={batimentsData?.regles} onSave={(d)=>savePiece(d,p.code)} />}
+                    {gen==='plan_facade'&&<FacadeArchi analysis={planAnalysis} onSave={(d)=>savePiece(d,p.code)} />}
+                    {gen==='notice_ia'&&<NoticeArchi analysis={planAnalysis} formData={form} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
+                    {gen==='insertion_paysagere'&&<PhotoUploader code={p.code} description="Téléversez 2-3 photos panoramiques pour le photomontage d'insertion." onSave={(d)=>savePiece(d,p.code)} />}
+                    {gen==='upload'&&<PhotoUploader code={p.code} description={p.description||p.intitule} onSave={(d)=>savePiece(d,p.code)} />}
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           )}
 
           {step===6&&(()=>{
-            // Pré-check : statut des pièces critiques pour validation du dépôt
-            const piecesList = cerfa?.pieces || [];
-            const totalCrit = piecesList.filter(p => p.obligatoire).length;
-            const doneCrit  = piecesList.filter(p => p.obligatoire && (piecesData[p.code] || p.generation==='auto')).length;
+            // Pré-check : statut des pièces critiques pour validation du dépôt (dynamique)
+            const piecesList = dynamicPieces;
+            const totalCrit = piecesList.filter(p => p.obligatoire === true).length;
+            const doneCrit  = piecesList.filter(p => p.obligatoire === true && (piecesData[p.code] || p.source === 'auto_ign')).length;
             const allOk = doneCrit === totalCrit && totalCrit > 0;
             const completionPct = totalCrit ? Math.round((doneCrit/totalCrit)*100) : 0;
+            const cerfaMeta = CERFA_META[(cerfaId || '').slice(0, 5)] || cerfa;
             return (
             <div>
               <div style={{ textAlign:'center',marginBottom:24 }}>
@@ -1216,7 +1346,7 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
                 </div>
               </div>
 
-              {cerfa&&<div style={{ padding:'10px 14px',background:'rgba(160,120,32,.06)',border:'0.5px solid rgba(160,120,32,.2)',borderRadius:8,fontSize:12,color:'#e8b420',fontWeight:600,marginBottom:16 }}>{cerfa.emoji} {cerfa.numero} — {cerfa.nom} · Délai officiel : {cerfa.delai}</div>}
+              {cerfaMeta&&<div style={{ padding:'10px 14px',background:'rgba(160,120,32,.06)',border:'0.5px solid rgba(160,120,32,.2)',borderRadius:8,fontSize:12,color:'#e8b420',fontWeight:600,marginBottom:16 }}>{cerfaMeta.emoji} {cerfaMeta.numero} — {cerfaMeta.nom} · Délai officiel : {cerfaMeta.delai}</div>}
 
               {/* Récap demandeur + terrain + projet */}
               <div style={{ background:'#0c0c18',border:'0.5px solid #1c1c2a',borderRadius:10,padding:16,marginBottom:14,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14 }}>
@@ -1236,7 +1366,7 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
 
               <div style={{ background:'#111118',borderRadius:10,padding:16,marginBottom:14 }}>
                 <div style={{ fontSize:12,fontWeight:600,color:'#f2efe9',marginBottom:10 }}>Statut détaillé des pièces</div>
-                {piecesList.map((p,i)=>{const done=piecesData[p.code]||p.generation==='auto';return(<div key={i} style={{ display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'0.5px solid #1a1a28',fontSize:12 }}><span style={{ color:done?'#4ade80':p.obligatoire?'#ef4444':'#e8b420',fontSize:14 }}>{done?'✓':p.obligatoire?'✗':'○'}</span><span style={{ color:done?'#c4bfb8':p.obligatoire?'#ef4444':'#5a5650' }}>{p.code} — {p.nom}</span></div>);})}
+                {piecesList.map((p,i)=>{const done=piecesData[p.code]||p.source==='auto_ign';return(<div key={i} style={{ display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'0.5px solid #1a1a28',fontSize:12 }}><span style={{ color:done?'#4ade80':p.obligatoire===true?'#ef4444':'#e8b420',fontSize:14 }}>{done?'✓':p.obligatoire===true?'✗':'○'}</span><span style={{ color:done?'#c4bfb8':p.obligatoire===true?'#ef4444':'#5a5650' }}>{p.code} — {p.intitule}</span></div>);})}
               </div>
 
               {/* Alertes légales finales + rappels post-accord */}

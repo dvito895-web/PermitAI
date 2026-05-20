@@ -5,7 +5,9 @@
 
 export const dynamic = 'force-dynamic';
 
-const MODEL = 'claude-opus-4-5';
+import { llmCall, isLlmConfigured, extractJson } from '../../../../lib/llm';
+
+const MODEL = 'claude-sonnet-4-5-20250929';
 
 // ─────────────────────── Helpers
 function buildPrompt({
@@ -266,12 +268,12 @@ export async function POST(request) {
     if (!imageBase64) {
       return Response.json({ success: false, error: 'imageBase64 manquant' }, { status: 400 });
     }
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!isLlmConfigured()) {
       return Response.json({
         success: true,
         analysis: fallbackResult({ surface_declaree, nature_travaux, type_cerfa }),
         ai_powered: false,
-        warning: 'ANTHROPIC_API_KEY manquante — valeurs fallback retournées.',
+        warning: 'Aucune clé LLM configurée (EMERGENT_LLM_KEY ou ANTHROPIC_API_KEY) — valeurs fallback retournées.',
       });
     }
 
@@ -280,55 +282,33 @@ export async function POST(request) {
       ces_plu, zone_plu, zone_abf, type_cerfa, recul_voirie_plu, recul_limites_plu,
     });
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mimeType || 'image/jpeg', data: imageBase64 } },
-            { type: 'text',  text: prompt },
-          ],
-        }],
-      }),
+    const llm = await llmCall({
+      maxTokens: 4000,
+      model: MODEL,
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType || 'image/jpeg', data: imageBase64 } },
+        { type: 'text',  text: prompt },
+      ],
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('[analyze-plan] Claude HTTP', response.status, errText.slice(0, 200));
+    if (!llm.ok) {
+      console.error('[analyze-plan] LLM error', llm.provider, llm.error);
       return Response.json({
         success: true,
         analysis: fallbackResult({ surface_declaree, nature_travaux, type_cerfa }),
         ai_powered: false,
-        warning: `Claude API ${response.status} — fallback retourné.`,
+        warning: `LLM ${llm.provider}: ${llm.error?.slice(0, 160) || 'erreur'} — fallback retourné.`,
       });
     }
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-
-    let result;
-    try {
-      const clean = text.replace(/```json\n?|\n?```/g, '').trim();
-      const match = clean.match(/\{[\s\S]*\}/);
-      result = JSON.parse(match ? match[0] : clean);
-    } catch (e) {
-      console.error('[analyze-plan] JSON parse failed:', e.message);
-      result = fallbackResult({ surface_declaree, nature_travaux, type_cerfa });
-    }
+    const result = extractJson(llm.text) || fallbackResult({ surface_declaree, nature_travaux, type_cerfa });
 
     return Response.json({
       success: true,
       analysis: result,
       ai_powered: true,
-      model: MODEL,
+      provider: llm.provider,
+      model: llm.model,
     });
   } catch (e) {
     console.error('Analyze plan error:', e);

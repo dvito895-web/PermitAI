@@ -1,11 +1,13 @@
 // app/api/cerfa/notice/route.js
-// Génère la notice descriptive PC7/DP7 via Claude Opus 4.5 (avec fallback template).
+// Génère la notice descriptive PC7/DP7 via Claude Sonnet 4.5 (Emergent LLM Key ou Anthropic direct).
 export const dynamic = 'force-dynamic';
 
-const MODEL = 'claude-opus-4-5';
+import { llmCall, isLlmConfigured } from '../../../../lib/llm';
+
+const MODEL = 'claude-sonnet-4-5-20250929';
 
 async function generateWithClaude(data) {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!isLlmConfigured()) return null;
   const prompt = `Tu es un expert en droit de l'urbanisme français. Rédige une NOTICE DESCRIPTIVE complète (article R.431-8 Code de l'urbanisme) pour un CERFA ${data.type_cerfa || 'PC/DP'}.
 
 DEMANDEUR : ${data.prenom || ''} ${data.nom || ''}
@@ -24,26 +26,12 @@ DESCRIPTION LIBRE : ${data.description_libre || '—'}
 Génère une notice en sections claires (Demandeur / Terrain / Projet / Matériaux / Réseaux / Conformité urbanisme).
 Ton administratif français, précis, prêt à imprimer. Pas de markdown, juste du texte avec titres en MAJUSCULES soulignés par des tirets.`;
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-    if (!res.ok) return null;
-    const d = await res.json();
-    return d.content?.[0]?.text || null;
-  } catch {
+  const r = await llmCall({ content: prompt, model: MODEL, maxTokens: 2000 });
+  if (!r.ok) {
+    console.error('[notice] LLM error', r.provider, r.error);
     return null;
   }
+  return r.text || null;
 }
 
 function templateNotice(data) {

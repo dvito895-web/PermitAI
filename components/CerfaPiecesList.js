@@ -32,12 +32,13 @@ const STATUT_BADGES = {
  *  - compact: boolean (mode liste compact pour récap step 6)
  */
 export default function CerfaPiecesList({
-  cerfaNum, estNeuf = false, statuses = {}, onDownload, onUpload, compact = false,
+  cerfaNum, estNeuf = false, ctx = null, statuses = {}, onDownload, onUpload, compact = false,
 }) {
-  const pieces = useMemo(() => getPiecesForCerfa(cerfaNum), [cerfaNum]);
+  const effectiveCtx = ctx || { nature_travaux: estNeuf ? 'construction_neuve' : '' };
+  const pieces = useMemo(() => getPiecesForCerfa(cerfaNum, effectiveCtx), [cerfaNum, JSON.stringify(effectiveCtx)]);
 
-  // Filtre les pièces conditionnelles (critique === 'si_neuf')
-  const filtered = pieces.filter(p => p.critique !== 'si_neuf' || estNeuf);
+  // Toutes les pièces retournées sont déjà filtrées par contexte (cf. cerfaLegalRules)
+  const filtered = pieces;
 
   const computeStatut = (p) => {
     if (statuses[p.code]) return statuses[p.code];
@@ -51,7 +52,7 @@ export default function CerfaPiecesList({
     const s = computeStatut(p);
     return s === 'GENERE' || s === 'UPLOAD';
   }).length;
-  const missing = filtered.filter(p => computeStatut(p) === 'MANQUANT' && p.critique === true).length;
+  const missing = filtered.filter(p => computeStatut(p) === 'MANQUANT' && p.obligatoire === true).length;
 
   return (
     <div data-testid="cerfa-pieces-list">
@@ -100,7 +101,7 @@ export default function CerfaPiecesList({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                   <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#a07820', fontWeight: 600 }}>{p.code}</span>
                   <span style={{ fontSize: 13, color: '#f2efe9', fontWeight: 500 }}>{p.intitule}</span>
-                  {p.critique === true && <span style={{ fontSize: 9, color: '#ef4444', fontWeight: 600 }}>OBLIGATOIRE</span>}
+                  {p.obligatoire === true && <span style={{ fontSize: 9, color: '#ef4444', fontWeight: 600 }}>OBLIGATOIRE</span>}
                 </div>
                 {!compact && (
                   <div style={{ fontSize: 11, color: '#c4bfb8', lineHeight: 1.45 }}>{p.description}</div>
