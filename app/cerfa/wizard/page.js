@@ -1,6 +1,8 @@
 'use client';
 import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import CadastreMap from '../../../components/MapWrapper';
+import LegalAlerts from '../../../components/LegalAlerts';
+import CerfaPiecesList from '../../../components/CerfaPiecesList';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -111,8 +113,8 @@ function PlanUploader({ onAnalysisComplete, surface, natureTravaux }) {
               <div style={{ padding: '12px 14px', background: 'rgba(74,222,128,.06)', border: '0.5px solid rgba(74,222,128,.2)', borderRadius: 10 }}>
                 <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 600, marginBottom: 10 }}>✅ Analyse IA complète</div>
                 {[
-                  ['Dimensions', `${analysis.dimensions.largeur_totale}m × ${analysis.dimensions.profondeur_totale}m`],
-                  ['Surface estimée', `${analysis.dimensions.surface_plancher_estimee} m²`],
+                  ['Dimensions', `${analysis.dimensions.largeur_totale || '?'}m × ${analysis.dimensions.profondeur_totale || '?'}m`],
+                  ['Surface estimée', `${analysis.dimensions.surface_plancher_estimee || '?'} m²`],
                   ['Forme', analysis.forme_batiment.type],
                   ['Pièces', analysis.elements.pieces.join(', ')],
                   ['Toiture', `${analysis.elements.type_toiture} (${analysis.elements.pente_toiture_estimee}°)`],
@@ -268,7 +270,7 @@ function PlanMasseArchi({ analysis, planData, parcelData, pluRegles, onSave }) {
       ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
       ctx.fillText(`${analysis.dimensions.surface_plancher_estimee || '?'} m²`, bX + bW/2, bY + bH/2);
       ctx.font = '9px Arial';
-      ctx.fillText(`${analysis.dimensions.largeur_totale}m × ${analysis.dimensions.profondeur_totale}m`, bX + bW/2, bY + bH/2 + 12);
+      ctx.fillText(`${analysis.dimensions.largeur_totale || '?'}m × ${analysis.dimensions.profondeur_totale || '?'}m`, bX + bW/2, bY + bH/2 + 12);
       ctx.textAlign = 'left';
 
       // Cotations
@@ -337,7 +339,7 @@ function PlanMasseArchi({ analysis, planData, parcelData, pluRegles, onSave }) {
     <div>
       {analysis && (
         <div style={{ padding:'8px 12px',background:'rgba(74,222,128,.06)',border:'0.5px solid rgba(74,222,128,.2)',borderRadius:8,fontSize:11,color:'#4ade80',marginBottom:10 }}>
-          ✅ Plan de masse généré depuis votre plan — {analysis.dimensions.largeur_totale}m × {analysis.dimensions.profondeur_totale}m · {analysis.dimensions.surface_plancher_estimee}m²
+          ✅ Plan de masse généré depuis votre plan — {analysis.dimensions.largeur_totale || '?'}m × {analysis.dimensions.profondeur_totale || '?'}m · {analysis.dimensions.surface_plancher_estimee || '?'}m²
         </div>
       )}
       {!analysis && (
@@ -680,7 +682,7 @@ function FacadeArchi({ analysis, onSave }) {
       {analysis ? (
         <>
           <div style={{ padding:'7px 12px',background:'rgba(74,222,128,.06)',border:'0.5px solid rgba(74,222,128,.2)',borderRadius:8,fontSize:11,color:'#4ade80',marginBottom:8 }}>
-            ✅ Façade générée — {analysis.dimensions.largeur_totale}m large · {analysis.facade_principale?.nombre_fenetres} fenêtres · {analysis.materiaux_detectes?.murs} / {analysis.materiaux_detectes?.toiture}
+            ✅ Façade générée — {analysis.dimensions.largeur_totale || '?'}m large · {analysis.facade_principale?.nombre_fenetres} fenêtres · {analysis.materiaux_detectes?.murs} / {analysis.materiaux_detectes?.toiture}
           </div>
           <canvas ref={canvasRef} width={680} height={320}
             style={{ border:'1px solid #1c1c2a',borderRadius:10,display:'block',background:'#fff',maxWidth:'100%' }} />
@@ -944,7 +946,7 @@ function WizardContent() {
 <div class="f"><span class="l">Façades</span><span class="v">${form.materiaux_facade||'—'}</span></div>
 <div class="f"><span class="l">Toiture</span><span class="v">${form.materiaux_toiture||'—'}</span></div>
 ${planAnalysis?`<h2>🤖 Analyse IA du plan</h2>
-<div class="f"><span class="l">Dimensions détectées</span><span class="v">${planAnalysis.dimensions.largeur_totale}m × ${planAnalysis.dimensions.profondeur_totale}m</span></div>
+<div class="f"><span class="l">Dimensions détectées</span><span class="v">${planAnalysis.dimensions.largeur_totale || '?'}m × ${planAnalysis.dimensions.profondeur_totale || '?'}m</span></div>
 <div class="f"><span class="l">Pièces détectées</span><span class="v">${planAnalysis.elements.pieces.join(', ')}</span></div>
 <div class="f"><span class="l">Type toiture</span><span class="v">${planAnalysis.elements.type_toiture} — Pente ${planAnalysis.elements.pente_toiture_estimee}°</span></div>
 <div class="f"><span class="l">Matériaux détectés</span><span class="v">${planAnalysis.materiaux_detectes.murs} / ${planAnalysis.materiaux_detectes.toiture}</span></div>`:''}
@@ -1026,6 +1028,23 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
                   </div>}
                 </div>
               )}
+
+              {/* Alertes légales temps réel — RE2020, architecte, ABF, délai officiel */}
+              {form.nature_travaux && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 10, color: '#5a5650', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 8, fontWeight: 600 }}>
+                    Obligations légales déclenchées
+                  </div>
+                  <LegalAlerts
+                    cerfaNum={cerfaId}
+                    surface_creee={form.surface_creee}
+                    surface_plancher_totale={form.surface_creee}
+                    nature_travaux={form.nature_travaux}
+                    zone_abf={!!form.zone_abf}
+                    est_personne_morale={!!form.est_personne_morale}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -1091,8 +1110,8 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
                 <div style={{ marginTop:16,padding:'12px 14px',background:'rgba(74,222,128,.06)',border:'0.5px solid rgba(74,222,128,.2)',borderRadius:10 }}>
                   <div style={{ fontSize:12,fontWeight:600,color:'#4ade80',marginBottom:10 }}>✅ Analyse IA complète — champs auto-remplis</div>
                   <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:12,color:'#c4bfb8' }}>
-                    <div>Dimensions: <strong>{planAnalysis.dimensions.largeur_totale}m × {planAnalysis.dimensions.profondeur_totale}m</strong></div>
-                    <div>Surface: <strong>{planAnalysis.dimensions.surface_plancher_estimee} m²</strong></div>
+                    <div>Dimensions: <strong>{planAnalysis.dimensions.largeur_totale || '?'}m × {planAnalysis.dimensions.profondeur_totale || '?'}m</strong></div>
+                    <div>Surface: <strong>{planAnalysis.dimensions.surface_plancher_estimee || '?'} m²</strong></div>
                     <div>Toiture: <strong>{planAnalysis.elements.type_toiture}</strong></div>
                     <div>Pente: <strong>{planAnalysis.elements.pente_toiture_estimee}°</strong></div>
                     <div>Pièces: <strong>{planAnalysis.elements.pieces.join(', ')}</strong></div>
@@ -1120,6 +1139,18 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
             <div>
               <h2 style={{ color:'#f2efe9',fontSize:15,fontWeight:500,marginBottom:6 }}>📐 Documents architecturaux</h2>
               <p style={{ fontSize:12,color:'#5a5650',marginBottom:20 }}>Tous les plans sont générés depuis votre plan uploadé et l'analyse IA — comme un architecte.</p>
+
+              {/* Vue d'ensemble — jauge complétion + liste compacte */}
+              {cerfa && (
+                <div style={{ marginBottom: 20 }}>
+                  <CerfaPiecesList
+                    cerfaNum={cerfaId}
+                    estNeuf={form.nature_travaux === 'construction_neuve'}
+                    statuses={Object.fromEntries((cerfa?.pieces || []).map(p => [p.code, (piecesData[p.code] || p.generation==='auto') ? (p.generation === 'upload' || p.generation === 'photo' ? 'UPLOAD' : 'GENERE') : 'EN_ATTENTE']))}
+                  />
+                </div>
+              )}
+
               {!planAnalysis&&(
                 <div style={{ padding:'16px',background:'rgba(239,68,68,.06)',border:'0.5px solid rgba(239,68,68,.2)',borderRadius:10,fontSize:12,color:'#ef4444',marginBottom:20 }}>
                   ⚠️ Retournez à l'étape 4 pour uploader et analyser votre plan — les documents se génèrent automatiquement
@@ -1157,31 +1188,115 @@ ${c.pieces.map(p=>{const done=piecesData[p.code]||p.generation==='auto';return `
             </div>
           )}
 
-          {step===6&&(
+          {step===6&&(()=>{
+            // Pré-check : statut des pièces critiques pour validation du dépôt
+            const piecesList = cerfa?.pieces || [];
+            const totalCrit = piecesList.filter(p => p.obligatoire).length;
+            const doneCrit  = piecesList.filter(p => p.obligatoire && (piecesData[p.code] || p.generation==='auto')).length;
+            const allOk = doneCrit === totalCrit && totalCrit > 0;
+            const completionPct = totalCrit ? Math.round((doneCrit/totalCrit)*100) : 0;
+            return (
             <div>
               <div style={{ textAlign:'center',marginBottom:24 }}>
-                <div style={{ fontSize:36,marginBottom:8 }}>🎉</div>
-                <h2 style={{ color:'#f2efe9',fontSize:20,fontWeight:500,marginBottom:4 }}>Dossier professionnel finalisé</h2>
-                <p style={{ fontSize:12,color:'#5a5650' }}>{form.civilite} {form.prenom} {form.nom} · {form.commune} · CERFA {cerfaId}</p>
+                <div style={{ fontSize:36,marginBottom:8 }}>{allOk ? '✅' : '⚠️'}</div>
+                <h2 style={{ color:'#f2efe9',fontSize:20,fontWeight:500,marginBottom:4 }}>
+                  {allOk ? 'Dossier prêt à déposer' : 'Dossier incomplet'}
+                </h2>
+                <p style={{ fontSize:12,color:'#c4bfb8' }}>{form.civilite} {form.prenom} {form.nom} · {form.commune} · CERFA {cerfaId}</p>
               </div>
-              {cerfa&&<div style={{ padding:'10px 14px',background:'rgba(160,120,32,.06)',border:'0.5px solid rgba(160,120,32,.2)',borderRadius:8,fontSize:12,color:'#e8b420',fontWeight:600,marginBottom:16 }}>{cerfa.emoji} {cerfa.numero} — {cerfa.nom} · Délai: {cerfa.delai}</div>}
-              <div style={{ background:'#111118',borderRadius:10,padding:16,marginBottom:16 }}>
-                <div style={{ fontSize:12,fontWeight:600,color:'#f2efe9',marginBottom:10 }}>Statut des pièces</div>
-                {cerfa?.pieces.map((p,i)=>{const done=piecesData[p.code]||p.generation==='auto';return(<div key={i} style={{ display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'0.5px solid #1a1a28',fontSize:12 }}><span style={{ color:done?'#4ade80':p.obligatoire?'#ef4444':'#e8b420',fontSize:14 }}>{done?'✓':p.obligatoire?'✗':'○'}</span><span style={{ color:done?'#c4bfb8':p.obligatoire?'#ef4444':'#5a5650' }}>{p.code} — {p.nom}</span></div>);})}
+
+              {/* Barre de progression globale */}
+              <div style={{ background:'#0c0c18',border:'0.5px solid #1c1c2a',borderRadius:10,padding:14,marginBottom:14 }}>
+                <div style={{ display:'flex',justifyContent:'space-between',marginBottom:7 }}>
+                  <span style={{ fontSize:12,color:'#f2efe9',fontWeight:500 }}>Complétion du dossier</span>
+                  <span style={{ fontSize:14,color: allOk ? '#4ade80' : '#e8b420',fontWeight:700 }}>{doneCrit}/{totalCrit} · {completionPct}%</span>
+                </div>
+                <div style={{ height:6,background:'#1c1c2a',borderRadius:3,overflow:'hidden' }}>
+                  <div style={{ height:'100%',width:`${completionPct}%`,background: allOk ? 'linear-gradient(90deg,#4ade80,#86efac)' : 'linear-gradient(90deg,#e8b420,#fbbf24)',transition:'width .3s' }} />
+                </div>
               </div>
+
+              {cerfa&&<div style={{ padding:'10px 14px',background:'rgba(160,120,32,.06)',border:'0.5px solid rgba(160,120,32,.2)',borderRadius:8,fontSize:12,color:'#e8b420',fontWeight:600,marginBottom:16 }}>{cerfa.emoji} {cerfa.numero} — {cerfa.nom} · Délai officiel : {cerfa.delai}</div>}
+
+              {/* Récap demandeur + terrain + projet */}
+              <div style={{ background:'#0c0c18',border:'0.5px solid #1c1c2a',borderRadius:10,padding:16,marginBottom:14,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14 }}>
+                <div>
+                  <div style={{ fontSize:10,color:'#5a5650',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:6,fontWeight:600 }}>Demandeur</div>
+                  <div style={{ fontSize:12,color:'#f2efe9' }}>{form.civilite} {form.prenom} {form.nom}</div>
+                  <div style={{ fontSize:11,color:'#c4bfb8' }}>{form.email}</div>
+                  <div style={{ fontSize:11,color:'#c4bfb8' }}>{form.telephone}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:10,color:'#5a5650',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:6,fontWeight:600 }}>Terrain</div>
+                  <div style={{ fontSize:12,color:'#f2efe9' }}>{form.adresse_terrain}</div>
+                  <div style={{ fontSize:11,color:'#c4bfb8' }}>{form.code_postal} {form.commune}</div>
+                  {form.reference_cadastrale && <div style={{ fontSize:11,color:'#a07820',fontFamily:'monospace' }}>Parcelle {form.reference_cadastrale}</div>}
+                </div>
+              </div>
+
+              <div style={{ background:'#111118',borderRadius:10,padding:16,marginBottom:14 }}>
+                <div style={{ fontSize:12,fontWeight:600,color:'#f2efe9',marginBottom:10 }}>Statut détaillé des pièces</div>
+                {piecesList.map((p,i)=>{const done=piecesData[p.code]||p.generation==='auto';return(<div key={i} style={{ display:'flex',alignItems:'center',gap:6,padding:'5px 0',borderBottom:'0.5px solid #1a1a28',fontSize:12 }}><span style={{ color:done?'#4ade80':p.obligatoire?'#ef4444':'#e8b420',fontSize:14 }}>{done?'✓':p.obligatoire?'✗':'○'}</span><span style={{ color:done?'#c4bfb8':p.obligatoire?'#ef4444':'#5a5650' }}>{p.code} — {p.nom}</span></div>);})}
+              </div>
+
+              {/* Alertes légales finales + rappels post-accord */}
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontSize:10,color:'#5a5650',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:8,fontWeight:600 }}>Rappels légaux pour la suite</div>
+                <LegalAlerts
+                  cerfaNum={cerfaId}
+                  surface_creee={form.surface_creee}
+                  surface_plancher_totale={form.surface_creee}
+                  nature_travaux={form.nature_travaux}
+                  zone_abf={!!form.zone_abf}
+                  est_personne_morale={!!form.est_personne_morale}
+                  showDocDaact={true}
+                />
+              </div>
+
+              {/* Blocage si pièces critiques manquantes */}
+              {!allOk && (
+                <div style={{ padding:'12px 14px',background:'rgba(239,68,68,.08)',border:'0.5px solid rgba(239,68,68,.3)',borderRadius:9,marginBottom:14 }}>
+                  <div style={{ fontSize:12,color:'#fca5a5',fontWeight:600,marginBottom:4 }}>⚠️ Dépôt en mairie impossible</div>
+                  <div style={{ fontSize:11,color:'#c4bfb8',lineHeight:1.5 }}>
+                    {totalCrit - doneCrit} pièce{totalCrit-doneCrit>1?'s':''} obligatoire{totalCrit-doneCrit>1?'s':''} manquante{totalCrit-doneCrit>1?'s':''}. Retournez à l'étape 5 pour les générer ou les téléverser.
+                  </div>
+                </div>
+              )}
+
               <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-                <button onClick={downloadFinal}
-                  style={{ width:'100%',padding:'14px',background:'linear-gradient(90deg,#a07820,#c4960a)',border:'none',borderRadius:10,color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
-                  ⬇ Télécharger le dossier complet
+                <button onClick={downloadFinal} disabled={!allOk}
+                  style={{ width:'100%',padding:'14px',background: allOk ? 'linear-gradient(90deg,#a07820,#c4960a)' : '#1c1c2a',border:'none',borderRadius:10,color: allOk ? '#fff' : '#5a5650',fontSize:14,fontWeight:700,cursor: allOk ? 'pointer' : 'not-allowed',fontFamily:'inherit',opacity: allOk ? 1 : 0.6 }}>
+                  ⬇ Télécharger le dossier complet (ZIP)
                 </button>
+
+                {/* PLAT'AU — téléservice officiel d'instruction dématérialisée */}
+                <a href="https://plat-au.beta.gouv.fr/" target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>
+                  <button disabled={!allOk}
+                    style={{ width:'100%',padding:'12px',background: allOk ? 'linear-gradient(90deg,#1e3a8a,#3b82f6)' : '#1c1c2a',border:'none',borderRadius:10,color: allOk ? '#fff' : '#5a5650',fontSize:13,fontWeight:600,cursor: allOk ? 'pointer' : 'not-allowed',fontFamily:'inherit',opacity: allOk ? 1 : 0.6 }}>
+                    🏛️ Déposer en mairie via PLAT'AU →
+                  </button>
+                </a>
+
+                {/* Instructions PLAT'AU */}
+                {allOk && (
+                  <div style={{ padding:'12px 14px',background:'#0c0c18',border:'0.5px solid #1c1c2a',borderRadius:9,fontSize:11,color:'#c4bfb8',lineHeight:1.6 }}>
+                    <div style={{ fontSize:11,color:'#60a5fa',fontWeight:600,marginBottom:6 }}>📋 Comment déposer via PLAT'AU :</div>
+                    1. Téléchargez le ZIP du dossier ci-dessus<br/>
+                    2. Allez sur <strong>plat-au.beta.gouv.fr</strong> et créez un compte<br/>
+                    3. Cliquez sur "Nouveau dossier" → CERFA {cerfaId}<br/>
+                    4. Téléversez chaque pièce dans l'emplacement correspondant<br/>
+                    5. Signez électroniquement et validez → délai officiel de {cerfa?.delai}
+                  </div>
+                )}
+
                 <Link href={`/depot?adresse=${encodeURIComponent(form.adresse_terrain)}&commune=${encodeURIComponent(form.commune)}&cerfa=${cerfaId}`} style={{ textDecoration:'none' }}>
                   <button style={{ width:'100%',padding:'12px',background:'transparent',border:'0.5px solid rgba(160,120,32,.3)',borderRadius:10,color:'#a07820',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
-                    📬 Dépôt mairie assisté — 199€ →
+                    🤝 Dépôt mairie assisté par PermitAI — 199€ →
                   </button>
                 </Link>
               </div>
             </div>
-          )}
+          );})()}
 
           <div style={{ display:'flex',gap:8,marginTop:24,paddingTop:20,borderTop:'0.5px solid #111118' }}>
             {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{ padding:'11px 20px',background:'transparent',border:'0.5px solid #1c1c2a',borderRadius:9,color:'#5a5650',fontSize:12,cursor:'pointer',fontFamily:'inherit' }}>← Retour</button>}
