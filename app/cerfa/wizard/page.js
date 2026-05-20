@@ -6,6 +6,7 @@ import CerfaPiecesList from '../../../components/CerfaPiecesList';
 import PlanMassePro from '../../../components/PlanMassePro';
 import PlanCoupePro from '../../../components/PlanCoupePro';
 import PlanFacadePro from '../../../components/PlanFacadePro';
+import PhotomontagePCMI6 from '../../../components/PhotomontagePCMI6';
 import { getPiecesForCerfa, CERFA_META, recommendCerfa, cuType as cuTypeFn } from '../../../lib/cerfaLegalRules';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -1368,7 +1369,7 @@ ${dynamicPieces.map(p=>{const done=piecesData[p.code]||p.source==='auto_ign';ret
                     {gen==='plan_coupe'&&<PlanCoupePro analysis={planAnalysis} batimentsData={batimentsData} pluRegles={batimentsData?.regles} formData={form} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
                     {gen==='plan_facade'&&<PlanFacadePro analysis={planAnalysis} formData={form} batimentsData={batimentsData} pluRegles={batimentsData?.regles} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
                     {gen==='notice_ia'&&<NoticeArchi analysis={planAnalysis} formData={form} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
-                    {gen==='insertion_paysagere'&&<PhotoUploader code={p.code} description="Téléversez 2-3 photos panoramiques pour le photomontage d'insertion." onSave={(d)=>savePiece(d,p.code)} />}
+                    {gen==='insertion_paysagere'&&<PhotomontagePCMI6 formData={form} analysis={planAnalysis} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
                     {gen==='upload'&&<PhotoUploader code={p.code} description={p.description||p.intitule} onSave={(d)=>savePiece(d,p.code)} />}
                   </div>
                 )})}

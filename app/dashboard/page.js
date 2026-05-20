@@ -137,6 +137,11 @@ export default function DashboardPage() {
                 <Sparkles size={11} /> Passer à Pro
               </button>
             </Link>
+            <Link href="/dashboard/billing">
+              <button data-testid="billing-link" style={{ width: '100%', marginTop: 6, padding: '7px 0', background: 'transparent', border: '0.5px solid #1c1c2a', borderRadius: 6, color: '#8d887f', fontSize: 11, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                Gérer mon abonnement
+              </button>
+            </Link>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px' }}>
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#1c1c2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#e8b420', fontWeight: 600 }}>
