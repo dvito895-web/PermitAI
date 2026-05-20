@@ -4,6 +4,8 @@ import CadastreMap from '../../../components/MapWrapper';
 import LegalAlerts from '../../../components/LegalAlerts';
 import CerfaPiecesList from '../../../components/CerfaPiecesList';
 import PlanMassePro from '../../../components/PlanMassePro';
+import PlanCoupePro from '../../../components/PlanCoupePro';
+import PlanFacadePro from '../../../components/PlanFacadePro';
 import { getPiecesForCerfa, CERFA_META, recommendCerfa, cuType as cuTypeFn } from '../../../lib/cerfaLegalRules';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -745,6 +747,57 @@ function NoticeArchi({ analysis, formData, cerfaId, onSave }) {
     if (onSave) onSave(notice,'PC7'); setSaved(true);
   }
 
+  async function downloadDocx() {
+    try {
+      const r = await fetch('/api/cerfa/notice-export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notice,
+          cerfa: cerfaId,
+          demandeur: `${formData.prenom||''} ${formData.nom||''}`.trim(),
+          commune: formData.commune,
+        }),
+      });
+      if (!r.ok) throw new Error('Export DOCX échoué');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `notice-architecturale-${cerfaId}.docx`;
+      a.click(); URL.revokeObjectURL(url);
+      if (onSave) onSave(notice, 'PC7'); setSaved(true);
+    } catch (e) { alert('Erreur export DOCX : ' + e.message); }
+  }
+
+  async function downloadPdf() {
+    // PDF via fenêtre print (zéro dépendance, utilise CSS print stylé)
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Notice ${cerfaId}</title>
+<style>
+  @page { size: A4; margin: 22mm 18mm; }
+  body { font-family: 'Georgia', serif; color: #1a1a1a; line-height: 1.7; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; color: #a07820; text-align: center; border-bottom: 2px solid #a07820; padding-bottom: 8px; margin-bottom: 4px; }
+  .subtitle { text-align: center; font-style: italic; color: #888; font-size: 13px; margin-bottom: 24px; }
+  pre { font-family: inherit; white-space: pre-wrap; word-wrap: break-word; font-size: 13px; }
+  .meta { color: #666; font-size: 11px; text-align: right; margin-bottom: 16px; }
+  .footer { margin-top: 40px; border-top: 1px solid #ddd; padding-top: 16px; font-size: 12px; }
+</style></head><body>
+<div class="meta">PermitAI · CERFA ${cerfaId} · ${new Date().toLocaleDateString('fr-FR')}</div>
+<h1>NOTICE DESCRIPTIVE DU PROJET</h1>
+<div class="subtitle">Article R.431-8 du Code de l'urbanisme</div>
+<pre>${(notice||'').replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</pre>
+<div class="footer">
+  Fait à <strong>${formData.commune||'________'}</strong>, le <strong>${new Date().toLocaleDateString('fr-FR')}</strong><br/><br/>
+  Signature du demandeur :<br/><br/>
+  _________________________________
+</div>
+<script>window.onload=()=>setTimeout(()=>window.print(), 400);</script>
+</body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { alert('Pop-up bloqué — autorisez les pop-ups pour exporter en PDF'); return; }
+    w.document.write(html); w.document.close();
+    if (onSave) onSave(notice, 'PC7'); setSaved(true);
+  }
+
   return (
     <div>
       {loading ? (
@@ -761,9 +814,15 @@ function NoticeArchi({ analysis, formData, cerfaId, onSave }) {
           </div>
           <textarea value={notice} onChange={e=>setNotice(e.target.value)} rows={12}
             style={{ width:'100%',background:'#0a0a14',border:'0.5px solid #1c1c2a',borderRadius:8,padding:12,fontSize:11,color:'#f2efe9',fontFamily:'monospace',outline:'none',resize:'vertical',boxSizing:'border-box',lineHeight:1.7 }} />
-          <div style={{ display:'flex',gap:8,marginTop:8 }}>
-            <button onClick={download} style={{ padding:'8px 16px',background:saved?'rgba(74,222,128,.1)':'linear-gradient(90deg,#a07820,#c4960a)',border:saved?'0.5px solid rgba(74,222,128,.3)':'none',borderRadius:8,color:saved?'#4ade80':'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
-              {saved?'✓ Téléchargé':'⬇ Télécharger PC7'}
+          <div style={{ display:'flex',gap:8,marginTop:8,flexWrap:'wrap' }}>
+            <button onClick={download} data-testid="notice-download-txt" style={{ padding:'8px 16px',background:saved?'rgba(74,222,128,.1)':'linear-gradient(90deg,#a07820,#c4960a)',border:saved?'0.5px solid rgba(74,222,128,.3)':'none',borderRadius:8,color:saved?'#4ade80':'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
+              {saved?'✓ TXT téléchargé':'⬇ TXT'}
+            </button>
+            <button onClick={downloadDocx} data-testid="notice-download-docx" style={{ padding:'8px 16px',background:'#1e3a8a',border:'none',borderRadius:8,color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
+              📄 DOCX (Word)
+            </button>
+            <button onClick={downloadPdf} data-testid="notice-download-pdf" style={{ padding:'8px 16px',background:'#7c2d12',border:'none',borderRadius:8,color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
+              📑 PDF
             </button>
             <button onClick={generateNotice} style={{ padding:'8px 12px',background:'transparent',border:'0.5px solid #1c1c2a',borderRadius:8,color:'#5a5650',fontSize:11,cursor:'pointer',fontFamily:'inherit' }}>🔄 Régénérer</button>
           </div>
@@ -1306,8 +1365,8 @@ ${dynamicPieces.map(p=>{const done=piecesData[p.code]||p.source==='auto_ign';ret
                       formData={form}
                       cerfaId={cerfaId}
                       onSave={(svg,fmt)=>savePiece(svg,p.code)} />}
-                    {gen==='plan_coupe'&&<PlanCoupeArchi analysis={planAnalysis} batimentsData={batimentsData} pluRegles={batimentsData?.regles} onSave={(d)=>savePiece(d,p.code)} />}
-                    {gen==='plan_facade'&&<FacadeArchi analysis={planAnalysis} onSave={(d)=>savePiece(d,p.code)} />}
+                    {gen==='plan_coupe'&&<PlanCoupePro analysis={planAnalysis} batimentsData={batimentsData} pluRegles={batimentsData?.regles} formData={form} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
+                    {gen==='plan_facade'&&<PlanFacadePro analysis={planAnalysis} formData={form} batimentsData={batimentsData} pluRegles={batimentsData?.regles} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
                     {gen==='notice_ia'&&<NoticeArchi analysis={planAnalysis} formData={form} cerfaId={cerfaId} onSave={(d)=>savePiece(d,p.code)} />}
                     {gen==='insertion_paysagere'&&<PhotoUploader code={p.code} description="Téléversez 2-3 photos panoramiques pour le photomontage d'insertion." onSave={(d)=>savePiece(d,p.code)} />}
                     {gen==='upload'&&<PhotoUploader code={p.code} description={p.description||p.intitule} onSave={(d)=>savePiece(d,p.code)} />}

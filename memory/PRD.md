@@ -42,17 +42,44 @@ Permettre à tout particulier ou pro de générer un dossier d'urbanisme complet
 - **Step 5** : `dynamicPieces = getPiecesForCerfa(cerfaId, ctxLegal)` → rendu conditionnel par `getGenerator(piece)` (plan_situation, plan_masse_pro, plan_coupe, plan_facade, notice_ia, insertion_paysagere, upload).
 - **Step 6** : blocage du téléchargement ZIP si pièces obligatoires manquent (basé sur `p.obligatoire === true`).
 
-### b. PlanMassePro (nouveau composant)
-- **`components/PlanMassePro.js`** — SVG vectoriel niveau architecte HMONP :
+### b. PlanMassePro / PlanCoupePro / PlanFacadePro (3 nouveaux composants SVG pro)
+- **`components/PlanMassePro.js`** — Plan de masse SVG :
   - Géométrie IGN réelle (parcelle + bâtiments existants + voisins).
-  - Zone constructible matérialisée (recul voirie + reculs limites séparatives).
-  - Projet hachuré bleu avec cotations linéaires automatiques (largeur + profondeur).
-  - Annotations NGF (TN + TF), réseaux EP/EU, échelle graphique, flèche Nord.
+  - Zone constructible (recul voirie + reculs limites séparatives).
+  - Projet hachuré bleu avec cotations + reculs cotés.
+  - Annotations NGF, réseaux EP/EU, échelle graphique, flèche Nord.
   - **Cartouche professionnel** : maître d'ouvrage, terrain, projet, règles PLU, échelle, date.
-  - Export **SVG vectoriel** (impression haute déf) + PNG haute résolution.
-  - Layers toggleables (parcelle, bâtiments, voisins, reculs, projet, cotations, réseaux, NGF, cartouche).
+  - Export **SVG vectoriel** + PNG haute résolution + layers toggleables.
+- **`components/PlanCoupePro.js`** — Plan en coupe PCMI3/DP3 :
+  - Terrain naturel (TN) + Terrain fini (TF) avec textures terre/béton.
+  - Bâtiment existant (gris, toit 2 pans) + projet (bleu hachuré).
+  - Toiture conditionnelle (2 pans / plat selon pente détectée par IA).
+  - Cotations verticales (H façade, H totale, H max PLU).
+  - **Verdict conformité PLU automatique** (✓/⚠ selon H projet vs H max).
+  - Cartouche complet + échelle.
+- **`components/PlanFacadePro.js`** — 4 façades PCMI5/DP4 :
+  - Grille 2×2 (façade sud principale, nord, pignons est/ouest).
+  - Textures matériaux selon analyse IA (brique, enduit, bois, pierre).
+  - Toitures dimensionnées (tuile/ardoise/zinc/bac_acier).
+  - Fenêtres positionnées + porte d'entrée (façade sud uniquement).
+  - Cotations linéaires + cartouche matériaux.
 
-### c. Migration LLM → Emergent LLM Key
+### c. Export DOCX + PDF de la notice descriptive
+- **`app/api/cerfa/notice-export/route.js`** — Endpoint POST qui génère un **DOCX Word natif** via la lib `docx` (couleurs PermitAI, sections stylées, page de garde, signature).
+- **`NoticeArchi.downloadPdf()`** — Génère un PDF via `window.print()` stylé CSS @page A4 avec Georgia serif (zéro dépendance, prêt à imprimer).
+- 3 boutons exposés dans le wizard step 5 : `notice-download-txt`, `notice-download-docx`, `notice-download-pdf`.
+
+### d. Webhooks Stripe complets
+- **`app/api/webhook/stripe/route.js`** refondu — gère **7 events** :
+  - `checkout.session.completed` (création initiale via Stripe Checkout)
+  - `customer.subscription.created` / `.updated` / `.deleted`
+  - `invoice.paid` / `invoice.payment_succeeded` (renouvellements + reset crédits mensuels)
+  - `invoice.payment_failed` (création d'alerte interne automatique)
+- **Sync DB** : `User` (clerkId, stripeCustomerId, stripeSubscriptionId, plan, credits) **et** table `Subscription` séparée (historique + status + currentPeriodEnd).
+- Mapping `priceId → plan` via env vars `STRIPE_PRICE_STARTER/PRO/CABINET` (fallback inclusion).
+- Endpoint GET `/api/webhook/stripe` ajouté pour healthcheck (renvoie liste events configurés).
+
+### e. Migration LLM → Emergent LLM Key
 - **`lib/llm.js`** : helper unifié qui privilégie `EMERGENT_LLM_KEY` (proxy OpenAI-compatible sur `https://integrations.emergentagent.com/llm/chat/completions`) avec fallback Anthropic direct.
 - **`app/api/cerfa/analyze-plan/route.js`** : passe désormais par `llmCall()` avec `claude-sonnet-4-5-20250929` (vision).
 - **`app/api/cerfa/notice/route.js`** : idem, retourne `provider` + `model` + `ai_powered`.
@@ -65,18 +92,19 @@ Permettre à tout particulier ou pro de générer un dossier d'urbanisme complet
 
 ## 6) Backlog priorisé
 ### P0 — Reste à faire
-- Export PCMI 7 (notice) en `.docx` ou `.pdf` stylé (actuellement `.txt`).
-- PlanCoupeArchi / FacadeArchi : passer du Canvas au SVG vectoriel comme PlanMassePro.
+- (vide pour l'instant)
 
 ### P1
-- Webhooks Stripe (`api/webhook/stripe`) + sync DB User/Subscription.
+- **Vraie géométrie IGN voisins** : `batimentsData.voisins` n'est pas peuplé par `/api/batiments` → enrichir pour que `PlanMassePro` affiche les bâtiments mitoyens.
 - Intégration Resend (welcome + confirmation analyse) — clé valide requise.
-- Vraie géométrie IGN voisins (pour l'instant `batimentsData.voisins` n'est pas peuplé par `/api/batiments`).
+- Page `/dashboard/billing` : afficher status Subscription, plan actif, crédits restants, bouton "Customer portal" Stripe.
 - Indexation PLU 34 970 communes en arrière-plan (`scripts/index_ultra_fast.py`).
+- Photomontage d'insertion paysagère (PCMI6) via Claude image generation (nano-banana).
 
 ### P2
 - Découper `app/cerfa/wizard/page.js` (1300+ lignes) en sous-composants `components/wizard/Step{1..6}.js`.
 - Tests E2E Playwright complets (toutes étapes 1 → 6).
+- Internationalisation (anglais pour Belgique francophone + Suisse romande).
 
 ## 7) Variables d'environnement
 | Clé | Usage | Statut |

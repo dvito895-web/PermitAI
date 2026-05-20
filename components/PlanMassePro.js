@@ -287,7 +287,7 @@ export default function PlanMassePro({
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
-          width="100%" height="auto" style={{ display: 'block', cursor: drawMode ? 'crosshair' : 'default', maxWidth: '100%' }}
+          width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', cursor: drawMode ? 'crosshair' : 'default', maxWidth: '100%' }}
           onMouseDown={onSvgDown} onMouseMove={onSvgMove} onMouseUp={onSvgUp}
         >
           <defs>{hachuresPattern}{remblaisPattern}
